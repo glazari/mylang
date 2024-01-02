@@ -13,71 +13,78 @@ fn main() {
     main.add("call print");
     assembly.add_procedure(main);
 
-    // prints message at address rsi with length rdx to stdout
-    let mut print = Procedure::new("print");
-    print.add("mov rax, 1 ; system call for write");
-    print.add("mov rdi, 1 ; file handle 1 is stdout");
-    print.add("syscall");
-    assembly.add_procedure(print);
-
-    // print isprime
-    let mut print_is_prime = Procedure::new("print_is_prime");
-    print_is_prime.add("mov rsi, isprime");
-    print_is_prime.add("mov rdx, 9");
-    print_is_prime.add("call print");
-    assembly.add_procedure(print_is_prime);
-
-    // receives number in rax, returns addres of string in rsi and length in rdx
+    assembly.add_procedure(print());
+    assembly.add_procedure(print_is_prime());
     assembly.reserve_mem("number", 64);
-    let mut num_to_string = Procedure::new("num_to_string");
-    num_to_string.add("mov r10, 0       ; r10 is the length of the number");
-    num_to_string.add("mov rcx, rax     ; rcx is the number");
-    num_to_string.add_label("loop", "mov rax, rcx");
-    num_to_string.add("mov rdx, 0");
-    num_to_string.add("mov rbx, 10");
-    num_to_string.add("div rbx          ; rax = rax / rbx, rdx = rax % rbx");
-    num_to_string.add("add rdx, '0'     ; convert to ascii");
-    num_to_string.add("mov byte [number + r10], dl   ; store in number");
-    num_to_string.add("inc r10          ; increment length");
-    num_to_string.add("mov rcx, rax");
-    num_to_string.add("cmp rax, 0");
-    num_to_string.add("jne num_to_string_loop");
-    // reverse string
-
-    num_to_string.add("mov rcx, r10     ; rcx will be the end pointer");
-    num_to_string.add("dec rcx   ;  length is one less than end pointer");
-    num_to_string.add("mov rsi, 0       ; rsi will be the start pointer");
-    num_to_string.add_label("reverse_loop", "nop");
-    num_to_string.add("mov byte dl, [number + rsi]");
-    num_to_string.add("mov byte al, [number + rcx]");
-    num_to_string.add("mov byte [number + rsi], al");
-    num_to_string.add("mov byte [number + rcx], dl");
-    num_to_string.add("inc rsi");
-    num_to_string.add("dec rcx");
-    num_to_string.add("cmp rsi, rcx");
-    num_to_string.add("jle num_to_string_reverse_loop");
-
-    num_to_string.add("mov byte [number + r10], 10   ; add newline");
-    num_to_string.add("inc r10          ; increment length");
-
-    num_to_string.add("mov rsi, number");
-    num_to_string.add("mov rdx, r10");
-    num_to_string.add("ret");
-
-
-    assembly.add_procedure(num_to_string);
+    assembly.add_procedure(num_to_string());
 
     let assembly_string = assembly.to_string();
 
     println!("{}", assembly_string);
+
     // save to file
-    
     assembly.to_file("assembly.s");
     nasm("assembly.s", "assembly.o");
     ld("assembly.o", "assembly");
 }
 
+fn print() -> Procedure {
+    let mut p = Procedure::new("print");
+    p.description("prints message at address rsi with length rdx to stdout");
+    p.add("mov rax, 1 ; system call for write");
+    p.add("mov rdi, 1 ; file handle 1 is stdout");
+    p.add("syscall");
+    p
+}
 
+fn print_is_prime() -> Procedure {
+    // assumes existence of isprime label
+    // assumes existence of print procedure
+    let mut p = Procedure::new("print_is_prime");
+    p.add("mov rsi, isprime");
+    p.add("mov rdx, 9");
+    p.add("call print");
+    p
+}
+
+fn num_to_string() -> Procedure {
+    // assumes existence of number label
+    let mut p = Procedure::new("num_to_string");
+    p.description("converts number in rax to string and returns address in rsi and length in rdx");
+    p.add("mov r10, 0       ; r10 is the length of the number");
+    p.add("mov rcx, rax     ; rcx is the number");
+    p.add_label("loop", "mov rax, rcx");
+    p.add("mov rdx, 0");
+    p.add("mov rbx, 10");
+    p.add("div rbx          ; rax = rax / rbx, rdx = rax % rbx");
+    p.add("add rdx, '0'     ; convert to ascii");
+    p.add("mov byte [number + r10], dl   ; store in number");
+    p.add("inc r10          ; increment length");
+    p.add("mov rcx, rax");
+    p.add("cmp rax, 0");
+    p.jump("jne", "loop");
+
+    // reverse string
+    p.add("mov rcx, r10     ; rcx will be the end pointer");
+    p.add("dec rcx   ;  length is one less than end pointer");
+    p.add("mov rsi, 0       ; rsi will be the start pointer");
+    p.add_label("reverse_loop", "nop");
+    p.add("mov byte dl, [number + rsi]");
+    p.add("mov byte al, [number + rcx]");
+    p.add("mov byte [number + rsi], al");
+    p.add("mov byte [number + rcx], dl");
+    p.add("inc rsi");
+    p.add("dec rcx");
+    p.add("cmp rsi, rcx");
+    p.jump("jle", "reverse_loop");
+
+    p.add("mov byte [number + r10], 10   ; add newline");
+    p.add("inc r10          ; increment length");
+
+    p.add("mov rsi, number");
+    p.add("mov rdx, r10");
+    p
+}
 
 struct Assembly {
     procedures: Vec<Procedure>,
@@ -88,6 +95,7 @@ struct Assembly {
 struct Procedure {
     name: String,
     instructions: Vec<String>,
+    description: String,
 }
 
 impl Procedure {
@@ -95,7 +103,12 @@ impl Procedure {
         Procedure {
             name: name.to_string(),
             instructions: Vec::new(),
+            description: String::new(),
         }
+    }
+
+    fn description(&mut self, description: &str) {
+        self.description = description.to_string();
     }
 
     fn add(&mut self, instruction: &str) {
@@ -103,15 +116,24 @@ impl Procedure {
         self.instructions.push(line);
     }
 
+    fn jump(&mut self, jmp: &str, label: &str) {
+        let line = format!("\t{} {}_{}\n", jmp, self.name, label);
+        self.instructions.push(line);
+    }
+
     fn add_label(&mut self, label: &str, instruction: &str) {
         // add procedure name as prefix to avoid name collisions
-        let label = format!("{}_{}:\n", self.name, label); 
+        let label = format!("{}_{}:\n", self.name, label);
         self.instructions.push(label);
         self.add(instruction);
     }
 
     fn to_string(&self) -> String {
         let mut procedure_string = String::new();
+
+        if self.description.len() > 0 {
+            procedure_string.push_str(&format!("; {}\n", self.description));
+        }
 
         procedure_string.push_str(&format!("{}:\n", self.name));
 
@@ -123,12 +145,9 @@ impl Procedure {
         // by convention the return value is on the top of the stack
         procedure_string.push_str("\tret ; return to calling proceedure\n");
 
-
-
         procedure_string
     }
 }
-
 
 impl Assembly {
     fn new() -> Assembly {
@@ -176,13 +195,11 @@ impl Assembly {
         assembly_string.push_str("\txor rdi, rdi\n");
         assembly_string.push_str("\tsyscall\n\n");
 
-        // add procedures 
+        // add procedures
         for procedure in &self.procedures {
             assembly_string.push_str(&procedure.to_string());
             assembly_string.push_str("\n");
         }
-
-        
 
         assembly_string.push_str("\nsection .data\n");
         for line in &self.data_section {
@@ -205,7 +222,6 @@ impl Assembly {
             .expect("Unable to write data");
     }
 }
-
 
 fn ld(infile: &str, outfile: &str) {
     let output = std::process::Command::new("ld")

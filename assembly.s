@@ -15,6 +15,7 @@ main:
 	call print
 	ret ; return to calling proceedure
 
+; prints message at address rsi with length rdx to stdout
 print:
 	mov rax, 1 ; system call for write
 	mov rdi, 1 ; file handle 1 is stdout
@@ -27,6 +28,7 @@ print_is_prime:
 	call print
 	ret ; return to calling proceedure
 
+; converts number in rax to string and returns address in rsi and length in rdx
 num_to_string:
 	mov r10, 0       ; r10 is the length of the number
 	mov rcx, rax     ; rcx is the number
@@ -58,7 +60,6 @@ num_to_string_reverse_loop:
 	inc r10          ; increment length
 	mov rsi, number
 	mov rdx, r10
-	ret
 	ret ; return to calling proceedure
 
 
