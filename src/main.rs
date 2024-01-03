@@ -7,17 +7,19 @@ fn main() {
     assembly.add_message("notprime", "not prime");
 
     let mut main = Procedure::new("main");
-    main.add("mov rax, 19");
-    main.add("call print_is_prime");
-    main.add("mov rax, 1234");
+    main.add("mov r12, 2");
+    main.add_label("loop", "cmp r12, 100000");
+    main.jump("jg", "end_loop");
+    main.add("mov rax, r12");
+    main.add("call check_prime");
+    main.add("cmp rax, 1");
+    main.jump("jne", "nextnum");
+    main.add("mov rax, r12");
     main.add("call num_to_string");
     main.add("call print");
-    main.add("mov rax, 1234");
-    main.add("cmp rax, 1");
-    main.jump("je", "prime");
-    main.add("call print_not_prime");
-    main.jump("jmp", "end");
-    main.add_label("prime", "call print_is_prime");
+    main.add_label("nextnum", "inc r12");
+    main.jump("jmp", "loop");
+    main.add_label("end_loop", "nop");
     main.add_label("end", "nop");
     assembly.add_procedure(main);
 

@@ -8,18 +8,22 @@ end:
 	syscall
 
 main:
-	mov rax, 19
-	call print_is_prime
-	mov rax, 1234
+	mov r12, 2
+main_loop:
+	cmp r12, 100000
+	jg main_end_loop
+	mov rax, r12
+	call check_prime
+	cmp rax, 1
+	jne main_nextnum
+	mov rax, r12
 	call num_to_string
 	call print
-	mov rax, 1234
-	cmp rax, 1
-	je main_prime
-	call print_not_prime
-	jmp main_end
-main_prime:
-	call print_is_prime
+main_nextnum:
+	inc r12
+	jmp main_loop
+main_end_loop:
+	nop
 main_end:
 	nop
 	ret ; return to calling proceedure
