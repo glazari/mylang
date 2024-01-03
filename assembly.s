@@ -13,6 +13,15 @@ main:
 	mov rax, 1234
 	call num_to_string
 	call print
+	mov rax, 1234
+	cmp rax, 1
+	je main_prime
+	call print_not_prime
+	jmp main_end
+main_prime:
+	call print_is_prime
+main_end:
+	nop
 	ret ; return to calling proceedure
 
 ; prints message at address rsi with length rdx to stdout
@@ -62,9 +71,36 @@ num_to_string_reverse_loop:
 	mov rdx, r10
 	ret ; return to calling proceedure
 
+; checks if number in rax is prime, returns 1 if prime, 0 if not
+check_prime:
+	mov rbx, 2      ; rbx is the divisor
+	mov rcx, rax    ; rcx is the number
+check_prime_loop:
+	cmp rcx, rbx
+	jle check_prime_end_loop
+	mov rax, rcx
+	mov rdx, 0
+	div rbx         ; rax = rax / rbx, rdx = rax % rbx
+	inc rbx         ; increment divisor
+	cmp rdx, 0     ; if remainder is 0, number is not prime
+	jne check_prime_loop
+	mov rax, 0     ; number is not prime
+	ret
+check_prime_end_loop:
+	mov rax, 1     ; number is prime
+	ret
+	ret ; return to calling proceedure
+
+print_not_prime:
+	mov rsi, notprime
+	mov rdx, 10
+	call print
+	ret ; return to calling proceedure
+
 
 section .data
 isprime:	db	"is prime", 10
+notprime:	db	"not prime", 10
 
 section .bss
 number:	resb	64

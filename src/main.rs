@@ -4,6 +4,7 @@ use std::io::prelude::*;
 fn main() {
     let mut assembly = Assembly::new();
     assembly.add_message("isprime", "is prime");
+    assembly.add_message("notprime", "not prime");
 
     let mut main = Procedure::new("main");
     main.add("mov rax, 19");
@@ -11,12 +12,21 @@ fn main() {
     main.add("mov rax, 1234");
     main.add("call num_to_string");
     main.add("call print");
+    main.add("mov rax, 1234");
+    main.add("cmp rax, 1");
+    main.jump("je", "prime");
+    main.add("call print_not_prime");
+    main.jump("jmp", "end");
+    main.add_label("prime", "call print_is_prime");
+    main.add_label("end", "nop");
     assembly.add_procedure(main);
 
     assembly.add_procedure(print());
     assembly.add_procedure(print_is_prime());
     assembly.reserve_mem("number", 64);
     assembly.add_procedure(num_to_string());
+    assembly.add_procedure(check_prime());
+    assembly.add_procedure(print_not_prime());
 
     let assembly_string = assembly.to_string();
 
@@ -26,6 +36,27 @@ fn main() {
     assembly.to_file("assembly.s");
     nasm("assembly.s", "assembly.o");
     ld("assembly.o", "assembly");
+}
+
+fn check_prime() -> Procedure {
+    let mut p = Procedure::new("check_prime");
+    p.description("checks if number in rax is prime, returns 1 if prime, 0 if not");
+    p.add("mov rbx, 2      ; rbx is the divisor");
+    p.add("mov rcx, rax    ; rcx is the number");
+    p.add_label("loop", "cmp rcx, rbx");
+    p.jump("jle", "end_loop");
+    p.add("mov rax, rcx");
+    p.add("mov rdx, 0");
+    p.add("div rbx         ; rax = rax / rbx, rdx = rax % rbx");
+    p.add("inc rbx         ; increment divisor");
+    p.add("cmp rdx, 0     ; if remainder is 0, number is not prime");
+    p.jump("jne", "loop");
+    p.add("mov rax, 0     ; number is not prime");
+    p.add("ret");
+    p.add_label("end_loop", "mov rax, 1     ; number is prime");
+    p.add("ret");
+    p
+
 }
 
 fn print() -> Procedure {
@@ -43,6 +74,16 @@ fn print_is_prime() -> Procedure {
     let mut p = Procedure::new("print_is_prime");
     p.add("mov rsi, isprime");
     p.add("mov rdx, 9");
+    p.add("call print");
+    p
+}
+
+fn print_not_prime() -> Procedure {
+    // assumes existence of notprime label
+    // assumes existence of print procedure
+    let mut p = Procedure::new("print_not_prime");
+    p.add("mov rsi, notprime");
+    p.add("mov rdx, 10");
     p.add("call print");
     p
 }
