@@ -7,8 +7,9 @@ fn main() {
     assembly.add_message("notprime", "not prime");
 
     let mut main = Procedure::new("main");
-    main.add("mov r12, 2");
-    main.add_label("loop", "cmp r12, 100000");
+    main.add("mov rdi, 0    ; rdi is the offset for num_to_string");
+    main.add("mov r12, 2    ; r12 is the number to check");
+    main.add_label("loop", "cmp r12, 200000");
     main.jump("jg", "end_loop");
     main.add("mov rax, r12");
     main.add("call check_prime");
@@ -16,16 +17,28 @@ fn main() {
     main.jump("jne", "nextnum");
     main.add("mov rax, r12");
     main.add("call num_to_string");
+    main.add("add rdi, rdx ; increments offset by length of number");
+    main.add("cmp rdi, 10000");
+    main.jump("jl", "nextnum ; print only once buffer has 100 bytes");
+    main.add("mov rsi, number");
+    main.add("mov rdx, rdi");
     main.add("call print");
+    main.add("mov rdi, 0   ; reset offset");
     main.add_label("nextnum", "inc r12");
     main.jump("jmp", "loop");
     main.add_label("end_loop", "nop");
+    main.add("cmp rdi, 0");
+    main.jump("je", "end");
+    main.add("mov rsi, number");
+    main.add("mov rdx, rdi");
+    main.add("call print   ; print remaining numbers");
+    main.add("mov rdi, 0   ; reset offset");
     main.add_label("end", "nop");
     assembly.add_procedure(main);
 
     assembly.add_procedure(print());
     assembly.add_procedure(print_is_prime());
-    assembly.reserve_mem("number", 64);
+    assembly.reserve_mem("number", 10024);
     assembly.add_procedure(num_to_string());
     assembly.add_procedure(check_prime());
     assembly.add_procedure(print_not_prime());
@@ -93,15 +106,17 @@ fn print_not_prime() -> Procedure {
 fn num_to_string() -> Procedure {
     // assumes existence of number label
     let mut p = Procedure::new("num_to_string");
-    p.description("converts number in rax to string and returns address in rsi and length in rdx");
+    p.description("converts number in rax to string in :number+rdi and returns address in rsi and length in rdx");
     p.add("mov r10, 0       ; r10 is the length of the number");
     p.add("mov rcx, rax     ; rcx is the number");
+    p.add("mov r8, number   ; r8 is the start address of the number");
+    p.add("add r8, rdi      ; r8 is the start address of the number + rdi");
     p.add_label("loop", "mov rax, rcx");
     p.add("mov rdx, 0");
     p.add("mov rbx, 10");
     p.add("div rbx          ; rax = rax / rbx, rdx = rax % rbx");
     p.add("add rdx, '0'     ; convert to ascii");
-    p.add("mov byte [number + r10], dl   ; store in number");
+    p.add("mov byte [r8 + r10], dl   ; store in number + rdi");
     p.add("inc r10          ; increment length");
     p.add("mov rcx, rax");
     p.add("cmp rax, 0");
@@ -112,19 +127,19 @@ fn num_to_string() -> Procedure {
     p.add("dec rcx   ;  length is one less than end pointer");
     p.add("mov rsi, 0       ; rsi will be the start pointer");
     p.add_label("reverse_loop", "nop");
-    p.add("mov byte dl, [number + rsi]");
-    p.add("mov byte al, [number + rcx]");
-    p.add("mov byte [number + rsi], al");
-    p.add("mov byte [number + rcx], dl");
+    p.add("mov byte dl, [r8 + rsi]");
+    p.add("mov byte al, [r8 + rcx]");
+    p.add("mov byte [r8 + rsi], al");
+    p.add("mov byte [r8 + rcx], dl");
     p.add("inc rsi");
     p.add("dec rcx");
     p.add("cmp rsi, rcx");
     p.jump("jle", "reverse_loop");
 
-    p.add("mov byte [number + r10], 10   ; add newline");
+    p.add("mov byte [r8 + r10], 10   ; add newline");
     p.add("inc r10          ; increment length");
 
-    p.add("mov rsi, number");
+    p.add("mov rsi, r8");
     p.add("mov rdx, r10");
     p
 }

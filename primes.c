@@ -12,7 +12,7 @@ int isPrime(int n) {
 
 int main() {
   int n = 2;
-  for (n = 2; n < 100000; n++) {
+  for (n = 2; n < 200000; n++) {
     if (isPrime(n)) {
       printf("%d\n", n);
     }
