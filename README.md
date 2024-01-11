@@ -14,14 +14,16 @@ I added the following assembly routines:
 - print (prints to stdout)
 - num_to_string (converts a number to a string for printing, no dynamic memory allocation, just resuse same address)
 
+# Prime in assembly
+
+Added `my_primes.s` to calculate primes and print them out. It ran as fast as a c version.
+
+
 # todo
-- add an is_prime procedure (takes number in rax and returns 1 in rax if prime, 0 otherwise)
-- write a main that finds all primes up to 100000 and prints them
-- compare performance with c version
-- add facility for loops
 
 
 # ideas
+- add a way to write a loop
 - write tcp primitives (echo server, http server)
 
 ## Learnings
