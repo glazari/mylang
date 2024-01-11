@@ -72,7 +72,7 @@ main:
 .L8:
 	add	DWORD PTR -4[rbp], 1
 .L7:
-	cmp	DWORD PTR -4[rbp], 99999
+	cmp	DWORD PTR -4[rbp], 199999
 	jle	.L9
 	mov	eax, 0
 	leave

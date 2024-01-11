@@ -34,3 +34,4 @@ Digging in to try to understand why, I found the following:
 1. `test eax eax` is faster than `cmp eax 0` because it is not necessary to do a subtration first (not sure why that is faster)
 2. printf might be faster because it does buffering.
 	But I found references saying that when wrtting to the terminal it only buffers until the end of line, which matches what I was doing with my assembly version, so I am not sure why it is different.
+3. Real culprit was doing a 64 bit division while the c version was using 32 bit. `div dword [divisor]`

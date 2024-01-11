@@ -11,7 +11,7 @@ main:
 	mov rdi, 0    ; rdi is the offset for num_to_string
 	mov r12, 2    ; r12 is the number to check
 main_loop:
-	cmp r12, 600000
+	cmp r12, 200000
 	jg main_end_loop
 	mov rax, r12
 	call check_prime
@@ -97,7 +97,7 @@ check_prime:
 check_prime_loop:
 	cmp rcx, rbx
 	jle check_prime_end_loop
-	mov eax, rcx
+	mov eax, ecx
 	cdq ; extends number to rdx (with zeros)
 	div dword ebx         ; rax = rax / rbx, rdx = rax % rbx
 	inc rbx         ; increment divisor

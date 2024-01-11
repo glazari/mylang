@@ -60,9 +60,10 @@ fn check_prime() -> Procedure {
     p.add("mov rcx, rax    ; rcx is the number");
     p.add_label("loop", "cmp rcx, rbx");
     p.jump("jle", "end_loop");
-    p.add("mov rax, rcx");
-    p.add("mov rdx, 0");
-    p.add("div rbx         ; rax = rax / rbx, rdx = rax % rbx");
+    p.add("mov eax, ecx");
+    p.add("cdq ; extends number to rdx (with zeros)");
+    // dword because it turns out that 32 bit division is faster than 64 bit.
+    p.add("div dword ebx         ; rax = rax / rbx, rdx = rax % rbx");
     p.add("inc rbx         ; increment divisor");
     p.add("cmp rdx, 0     ; if remainder is 0, number is not prime");
     p.jump("jne", "loop");
