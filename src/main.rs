@@ -5,6 +5,7 @@ use std::io::prelude::*;
 
 struct Program {
     procedures: Vec<Procedure>,
+    global_data: Vec<Data>,
 }
 
 struct Procedure {
@@ -15,15 +16,76 @@ struct Procedure {
 
 enum Instructions {
     Raw(String),
-    Label(String),
     Loop(Loop1),
+    DoWhile(DoWhile),
     IfElse(IfElse1),
     Call(String),
+}
+
+struct Data {
+    name: String,
+    declaration: String,
+}
+
+impl Program {
+    fn new() -> Program {
+        Program {
+            procedures: Vec::new(),
+            global_data: Vec::new(),
+        }
+    }
+    fn add_data(&mut self, name: &str, declaration: &str) {
+        self.global_data.push(Data {
+            name: name.to_string(),
+            declaration: declaration.to_string(),
+        });
+    }
+}
+
+impl Instructions {
+    fn raw(raw: &str) -> Instructions {
+        Instructions::Raw(raw.to_string())
+    }
+
+    fn do_while(instructions: Vec<Instructions>, repeat_condition: JumpCondition) -> Instructions {
+        Instructions::DoWhile(DoWhile {
+            instructions,
+            repeat_condition,
+        })
+    }
+
+    fn loop1(exit_condition: JumpCondition, instructions: Vec<Instructions>) -> Instructions {
+        Instructions::Loop(Loop1 {
+            exit_condition,
+            instructions,
+        })
+    }
+
+    fn if_else(
+        condition: JumpCondition,
+        if_instructions: Vec<Instructions>,
+        else_instructions: Vec<Instructions>,
+    ) -> Instructions {
+        Instructions::IfElse(IfElse1 {
+            condition,
+            if_instructions,
+            else_instructions,
+        })
+    }
+
+    fn call(call: &str) -> Instructions {
+        Instructions::Call(call.to_string())
+    }
 }
 
 struct Loop1 {
     exit_condition: JumpCondition,
     instructions: Vec<Instructions>,
+}
+
+struct DoWhile {
+    instructions: Vec<Instructions>,
+    repeat_condition: JumpCondition,
 }
 
 struct JumpCondition {
@@ -38,20 +100,175 @@ struct IfElse1 {
 }
 
 fn main() {
-    let program = Program {
-        procedures: vec![Procedure {
-            name: "main".to_string(),
-            instructions: vec![
-                Instructions::Raw("mov rdi, 10".to_string()),
-            ],
-            description: "main function".to_string(),
-        }],
+    let mut program = Program::new();
+
+    program.add_data("number_buffer", "resb 1024");
+    let main = Procedure {
+        name: "main".to_string(),
+        description: "".to_string(),
+        instructions: vec![
+            Instructions::raw("mov rdi, 0; rdi is the offset for num_to_string"),
+            Instructions::raw("mov r12, 2; r12 is the number to check for primality"),
+            Instructions::loop1(
+                JumpCondition {
+                    condition: "cmp r12, 100".to_string(),
+                    jump: "jg".to_string(),
+                },
+                vec![
+                    Instructions::raw("mov rax, r12"),
+                    Instructions::raw("call check_prime"),
+                    Instructions::if_else(
+                        JumpCondition {
+                            condition: "cmp rax, 1".to_string(),
+                            jump: "jne".to_string(),
+                        },
+                        vec![
+                            Instructions::raw("mov rax, r12"),
+                            Instructions::raw("call num_to_string"),
+                            Instructions::raw(
+                                "add rdi, rdx ; increment offset by length of number",
+                            ),
+                            Instructions::if_else(
+                                JumpCondition {
+                                    condition:
+                                        "cmp rdi, 1000  ; print only once buffer has many bytes"
+                                            .to_string(),
+                                    jump: "jl".to_string(),
+                                },
+                                vec![
+                                    Instructions::raw("mov rsi, number_buffer"),
+                                    Instructions::raw("mov rdx, rdi"),
+                                    Instructions::call("print"),
+                                    Instructions::raw("mov rdi, 0 ; reset offset"),
+                                ],
+                                vec![],
+                            ),
+                        ],
+                        vec![],
+                    ),
+                    Instructions::raw("inc r12"),
+                ],
+            ),
+            Instructions::if_else(
+                JumpCondition {
+                    condition: "cmp rdi, 0  ; if remaining numbers, print them".to_string(),
+                    jump: "jle".to_string(),
+                },
+                vec![
+                    Instructions::raw("mov rsi, number_buffer"),
+                    Instructions::raw("mov rdx, rdi"),
+                    Instructions::call("print"),
+                    Instructions::raw("mov rdi, 0 ; reset offset"),
+                ],
+                vec![],
+            ),
+        ],
     };
+    program.procedures.push(main);
+    program.procedures.push(print());
+    program.procedures.push(check_prime());
+    program.procedures.push(num_to_string());
+
     let assembly = CodeGenerator::new().generate_code(&program);
     save_to_file("assembly.s", &assembly);
     nasm("assembly.s", "assembly.o");
     ld("assembly.o", "assembly");
     println!("Hello, world!");
+}
+
+fn print() -> Procedure {
+    return Procedure {
+        name: "print".to_string(),
+        description: "prints string in rsi with length in rdx".to_string(),
+        instructions: vec![
+            Instructions::Raw("mov rax, 1".to_string()),
+            Instructions::Raw("mov rdi, 1".to_string()),
+            Instructions::Raw("syscall".to_string()),
+        ],
+    };
+}
+
+fn check_prime() -> Procedure {
+    return Procedure {
+        name: "check_prime".to_string(),
+        description: "checks if number in rax is prime, returns 1 if prime, 0 if not".to_string(),
+        instructions: vec![
+            Instructions::raw("mov rbx, 2     ; rbx is the divisor"),
+            Instructions::raw("mov rcx, rax   ; rcx is the number"),
+            Instructions::loop1(
+                JumpCondition {
+                    condition: "cmp rcx, rbx".to_string(),
+                    jump: "jle".to_string(),
+                },
+                vec![
+                    Instructions::raw("mov eax, ecx"),
+                    Instructions::raw("cdq"),
+                    Instructions::raw("div dword ebx ; dword is 32 bit, much faster than 64 bit"),
+                    Instructions::raw("inc rbx"),
+                    Instructions::if_else(
+                        JumpCondition {
+                            condition: "cmp rdx, 0".to_string(),
+                            jump: "jne".to_string(),
+                        },
+                        vec![Instructions::raw("mov rax, 0"), Instructions::raw("ret")],
+                        vec![],
+                    ),
+                ],
+            ),
+        ],
+    };
+}
+
+fn num_to_string() -> Procedure {
+    // assumes existence of number_buffer
+    return Procedure {
+        name: "num_to_string".to_string(),
+        description: "converts number in rax to string in number_buffer+rdi, returns address in rsi and length in rdx"
+            .to_string(),
+        instructions: vec![
+            Instructions::raw("mov r10, 0 ; r10 is the length of the number"),
+            Instructions::raw("mov rcx, rax ; rcx is the number"),
+            Instructions::raw("mov r8, number_buffer; r8 is the address to write to"),
+            Instructions::raw("add r8, rdi ; r8 is the address to write to"),
+            Instructions::do_while(
+                vec![
+                    Instructions::raw("mov rax, rcx"),
+                    Instructions::raw("cdq"),
+                    Instructions::raw("mov rbx, 10"),
+                    Instructions::raw("div dword ebx ; rax = eax:edx / ebx, rdx = eax:edx % ebx"),
+                    Instructions::raw("add rdx, '0' ; convert to ascii"),
+                    Instructions::raw("mov byte [r8+r10], dl ; store in buffer"),
+                    Instructions::raw("inc r10 ; increment length"),
+                    Instructions::raw("mov rcx, rax ;"),
+                ],
+                JumpCondition {
+                    condition: "cmp rcx, 0".to_string(),
+                    jump: "jne".to_string(),
+                },
+            ),
+            Instructions::raw("mov rcx, r10 ; rcx will be the end pointer"),
+            Instructions::raw("dec rcx "),
+            Instructions::raw("mov rsi, 0 ; rsi will be the start pointer"),
+            Instructions::do_while(
+                vec![
+                    Instructions::raw("mov byte dl, [r8+rsi]"),
+                    Instructions::raw("mov byte al, [r8+rcx]"),
+                    Instructions::raw("mov [r8+rcx], dl"),
+                    Instructions::raw("mov [r8+rsi], al"),
+                    Instructions::raw("inc rsi"),
+                    Instructions::raw("dec rcx"),
+                ],
+                JumpCondition {
+                    condition: "cmp rsi, rcx".to_string(),
+                    jump: "jle".to_string(),
+                },
+            ),
+            Instructions::raw("mov byte [r8+r10], 10 ; add newline"),
+            Instructions::raw("inc r10 ; increment length"),
+            Instructions::raw("mov rsi, r8"),
+            Instructions::raw("mov rdx, r10"),
+        ],
+    };
 }
 
 fn save_to_file(filename: &str, contents: &str) {
@@ -92,10 +309,21 @@ _start:
             self.generate_procedure(procedure);
         }
 
+        // add uninitialized data segment
+        self.assembly.push_str("\n\nsection .bss\n");
+        for data in &program.global_data {
+            self.assembly
+                .push_str(&format!("{}: {}\n", data.name, data.declaration));
+        }
+
         self.assembly.clone()
     }
 
     fn generate_procedure(&mut self, procedure: &Procedure) {
+        if procedure.description.len() > 0 {
+            self.assembly
+                .push_str(&format!("; {}\n", procedure.description));
+        }
         self.assembly.push_str(&format!("{}:\n", procedure.name));
 
         for instruction in &procedure.instructions {
@@ -104,7 +332,7 @@ _start:
 
         // return to calling function
         self.assembly.push_str(&format!(
-            "\tret ; return to calling proceedure from {}\n",
+            "\tret ; return to calling proceedure from {}\n\n",
             procedure.name
         ));
     }
@@ -112,11 +340,33 @@ _start:
     fn generate_instruction(&mut self, instruction: &Instructions) {
         match instruction {
             Instructions::Raw(raw) => self.assembly.push_str(&format!("\t{}\n", raw)),
-            Instructions::Label(label) => self.assembly.push_str(&format!("{}:\n", label)),
             Instructions::Loop(loop1) => self.generate_loop(loop1),
+            Instructions::DoWhile(do_while) => self.generate_do_while(do_while),
             Instructions::IfElse(if_else) => self.generate_if_else(if_else),
             Instructions::Call(call) => self.assembly.push_str(&format!("\tcall {}\n", call)),
         }
+    }
+
+    fn generate_do_while(&mut self, do_while: &DoWhile) {
+        let loop_number = self.lable_counter;
+        self.lable_counter += 1;
+
+        self.assembly
+            .push_str(&format!("do_while_{}:\n", loop_number));
+
+        for instruction in &do_while.instructions {
+            self.generate_instruction(instruction);
+        }
+
+        // add conditional jump
+        self.assembly
+            .push_str(&format!("\t{}\n", do_while.repeat_condition.condition));
+        self.assembly.push_str(&format!(
+            "\t{} do_while_{}\n",
+            do_while.repeat_condition.jump, loop_number
+        ));
+        self.assembly
+            .push_str(&format!("do_while_{}_end:\n", loop_number));
     }
 
     fn generate_loop(&mut self, loop1: &Loop1) {
@@ -129,7 +379,7 @@ _start:
         self.assembly
             .push_str(&format!("\t{}\n", loop1.exit_condition.condition));
         self.assembly.push_str(&format!(
-            "\t{} loop_{}_end",
+            "\t{} loop_{}_end\n",
             loop1.exit_condition.jump, loop_number
         ));
 
@@ -151,7 +401,7 @@ _start:
         self.assembly
             .push_str(&format!("\t{}\n", if_else.condition.condition));
         self.assembly.push_str(&format!(
-            "\t{} if_else_{}_else",
+            "\t{} if_else_{}_else\n",
             if_else.condition.jump, if_else_number
         ));
 

@@ -20,6 +20,9 @@ Added `my_primes.s` to calculate primes and print them out. It ran as fast as a 
 
 
 # todo
+- add way to add data section
+- add way to add bss setion 	
+- reproduce my_primes.s in new program struct.
 
 
 # ideas
