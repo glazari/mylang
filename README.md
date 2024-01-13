@@ -18,15 +18,36 @@ I added the following assembly routines:
 
 Added `my_primes.s` to calculate primes and print them out. It ran as fast as a c version.
 
+# Abstractions over assembly
+
+Added the concept of loops and if else statements to help handle the jumps and labels.
+First version is very simple, we have a global label counter so each new loop or if gets a number
+which is used to create the labels.
+The user still needs to know the assembly for the cmp and the jump type (jne, jg, jle...).
 
 # todo
-- add way to add data section
-- add way to add bss setion 	
-- reproduce my_primes.s in new program struct.
+- Refactor to use stack variables instead of keeping track of registers.
+- Add a way to declare variables.
+- Add stack pointer updates in functions, reserve enough space for local variables. (only if further calls are made.
+- Add instructions with variables (mov eax [var1])
+
+
+# Minimal language
+
+A minimal language needs:
+- variables
+- functions
+	- parameters
+	- return values
+	- local variables
+	- calling convention
+- if/else, while, doWhile
+- arithmetic operations (at first no nested expressions)
+- print to stdout (takes address)
+- a way of declaring fixed sized string (no dynamic memory allocation)
 
 
 # ideas
-- add a way to write a loop
 - write tcp primitives (echo server, http server)
 
 ## Learnings
