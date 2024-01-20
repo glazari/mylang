@@ -95,3 +95,85 @@ mov eax [esp]
 ; access stack first int after top of stack
 mov eax [esp + 4]
 ```
+
+
+# MyLang Syntax
+
+example
+
+```
+// comments
+
+let a = 1; // declare a variable
+
+fn add(a, b) -> c {
+	c = a + b;
+	return c;
+}
+
+// if else
+if  (a == 1) {
+} else {}
+
+
+while (a == 1) {
+}
+
+do {
+} while (a == 1);
+
+// assembly excape
+asm {
+  mov eax 1
+  mov ebx number
+}
+
+// call
+let c = add(1, 2);
+```
+
+GRAMMAR
+
+
+```
+
+program = { function }
+
+function = "fn" identifier "(" [ parameters ] ")" [ "->" identifier ] block
+
+parameters = identifier { "," identifier } 
+
+block = "{" [ statement ] "}"
+
+statement = if | while | doWhile | let | asm | return | assignment
+
+if = "if" "(" conditional ")" block [ "else" block ]
+
+while = "while" "(" conditional ")" block
+
+doWhile = "do" block "while" "(" conditional ")" ";"
+
+let = "let" identifier "=" expression ";"
+
+asm = "asm" "{" { assembly } "}"
+
+assembly = line "\n"
+
+line = ".*"
+
+return = "return" [ expression ] ";"
+
+// not nested expressions for now
+expression = term [ ( "+" | "-" | "*" | "/" ) term ]
+
+term = identifier | number
+
+identifier = "a-zA-Z_" { "a-zA-Z0-9_" }
+
+number = "0-9" { "0-9" }
+
+conditional = term ( "==" | "!=" | "<" | ">" ) term
+
+assignment = identifier "=" expression ";"
+```
+
