@@ -13,14 +13,18 @@ main:
 	mov rdi, 0; rdi is the offset for num_to_string
 	mov r12, 2; r12 is the number to check for primality
 loop_0:
-	cmp r12, 100
+	cmp r12, 100000
 	jg loop_0_end
 	mov rax, r12
 	call check_prime
 	cmp rax, 1
 	jne if_else_1_else
-	mov rax, r12
+	push r12
+	mov r8, number_buffer
+	add r8, rdi ; r8 is the address to write to
+	push r8
 	call num_to_string
+	add rsp, 16 ; restore stack
 	add rdi, rdx ; increment offset by length of number
 	cmp rdi, 1000  ; print only once buffer has many bytes
 	jl if_else_2_else
@@ -79,10 +83,10 @@ loop_4_end:
 
 ; converts number in rax to string in number_buffer+rdi, returns address in rsi and length in rdx
 num_to_string:
+	mov rax, [rsp + 16] ; rax is the number
+	mov r8, [rsp + 8] ; r8 the address to write to
 	mov r10, 0 ; r10 is the length of the number
 	mov rcx, rax ; rcx is the number
-	mov r8, number_buffer; r8 is the address to write to
-	add r8, rdi ; r8 is the address to write to
 do_while_6:
 	mov rax, rcx
 	cdq

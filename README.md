@@ -46,6 +46,14 @@ A minimal language needs:
 - print to stdout (takes address)
 - a way of declaring fixed sized string (no dynamic memory allocation)
 
+# Calling convention
+
+Aiming for simplicity, everything is passed on the stack, in the following order:
+- return value  (if any)
+- return address (return to caller)
+- parameters
+- local variables
+
 
 # ideas
 - write tcp primitives (echo server, http server)
@@ -61,3 +69,29 @@ Digging in to try to understand why, I found the following:
 2. printf might be faster because it does buffering.
 	But I found references saying that when wrtting to the terminal it only buffers until the end of line, which matches what I was doing with my assembly version, so I am not sure why it is different.
 3. Real culprit was doing a 64 bit division while the c version was using 32 bit. `div dword [divisor]`
+
+
+# GDB learningd
+
+we can define things in `~/.gdbinit` to make it easier to debug.
+
+I defined there a layout to show registers, asm called ar.
+and another layout that includes source code called sar.
+
+```gdb
+# set a breakpoint
+b <function name>
+
+layout ar
+
+starti # starts the program and stops at the first instruction
+stepi # steps one instruction
+si # same as stepi
+```
+
+```asm
+; access stack top
+mov eax [esp]
+; access stack first int after top of stack
+mov eax [esp + 4]
+```

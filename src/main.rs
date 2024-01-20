@@ -111,7 +111,7 @@ fn main() {
             Instructions::raw("mov r12, 2; r12 is the number to check for primality"),
             Instructions::loop1(
                 JumpCondition {
-                    condition: "cmp r12, 100".to_string(),
+                    condition: "cmp r12, 100000".to_string(),
                     jump: "jg".to_string(),
                 },
                 vec![
@@ -123,8 +123,12 @@ fn main() {
                             jump: "jne".to_string(),
                         },
                         vec![
-                            Instructions::raw("mov rax, r12"),
+                            Instructions::raw("push r12"),
+                            Instructions::raw("mov r8, number_buffer"),
+                            Instructions::raw("add r8, rdi ; r8 is the address to write to"),
+                            Instructions::raw("push r8"),
                             Instructions::raw("call num_to_string"),
+                            Instructions::raw("add rsp, 16 ; restore stack"),
                             Instructions::raw(
                                 "add rdi, rdx ; increment offset by length of number",
                             ),
@@ -223,13 +227,16 @@ fn num_to_string() -> Procedure {
     // assumes existence of number_buffer
     return Procedure {
         name: "num_to_string".to_string(),
+        // (number, address) -> (length)
         description: "converts number in rax to string in number_buffer+rdi, returns address in rsi and length in rdx"
             .to_string(),
         instructions: vec![
+            Instructions::raw("mov rax, [rsp + 16] ; rax is the number"),
+            Instructions::raw("mov r8, [rsp + 8] ; r8 the address to write to"),
             Instructions::raw("mov r10, 0 ; r10 is the length of the number"),
             Instructions::raw("mov rcx, rax ; rcx is the number"),
-            Instructions::raw("mov r8, number_buffer; r8 is the address to write to"),
-            Instructions::raw("add r8, rdi ; r8 is the address to write to"),
+            //Instructions::raw("mov r8, number_buffer; r8 is the address to write to"),
+            //Instructions::raw("add r8, rdi ; r8 is the address to write to"),
             Instructions::do_while(
                 vec![
                     Instructions::raw("mov rax, rcx"),
