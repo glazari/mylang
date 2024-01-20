@@ -164,7 +164,13 @@ line = ".*"
 return = "return" [ expression ] ";"
 
 // not nested expressions for now
-expression = term [ ( "+" | "-" | "*" | "/" ) term ]
+expression = term
+	term "+" term
+	term "-" term
+	term "*" term
+	term "/" term
+	term "%" term
+	call
 
 term = identifier | number
 
