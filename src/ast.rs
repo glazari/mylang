@@ -1,21 +1,21 @@
 
-struct Program {
-     functions: Vec<Function>,
+pub struct Program {
+     pub functions: Vec<Function>,
      //constants: Vec<Constant>,
  }
 
-struct Function {
-    name: String,
-    params: Vec<Parameter>,
-    body: Vec<Statement>,
+pub struct Function {
+    pub name: String,
+    pub params: Vec<Parameter>,
+    pub body: Vec<Statement>,
 }
 
 
-struct Parameter {
-    name: String,
+pub struct Parameter {
+    pub name: String,
 }
 
-enum Statement {
+pub enum Statement {
    If(If),
    While(While),
    DoWhile(DoWhile),
@@ -25,48 +25,48 @@ enum Statement {
    Assign(Assign),
 }
 
-struct If {
-    condition: Conditional,
-    body: Vec<Statement>,
-    else_body: Vec<Statement>,
+pub struct If {
+    pub condition: Conditional,
+    pub body: Vec<Statement>,
+    pub else_body: Vec<Statement>,
 }
 
-struct While {
-    condition: Conditional,
-    body: Vec<Statement>,
+pub struct While {
+    pub condition: Conditional,
+    pub body: Vec<Statement>,
 }
 
-struct DoWhile {
-    condition: Conditional,
-    body: Vec<Statement>,
+pub struct DoWhile {
+    pub condition: Conditional,
+    pub body: Vec<Statement>,
 }
 
-struct Let {
-    name: String,
-    value: Expression,
+pub struct Let {
+    pub name: String,
+    pub value: Expression,
 }
 
-struct Asm {
-    lines: Vec<String>,
+pub struct Asm {
+    pub lines: Vec<String>,
 }
 
-struct Return {
-    value: Expression,
+pub struct Return {
+    pub value: Expression,
 }
 
-struct Assign {
-    name: String,
-    value: Expression,
+pub struct Assign {
+    pub name: String,
+    pub value: Expression,
 }
 
-enum Conditional {
+pub enum Conditional {
     Eq(Term, Term),
     NE(Term, Term),
     LT(Term, Term),
     GT(Term, Term),
 }
 
-enum Expression {
+pub enum Expression {
     Term(Term),
     Add(Term, Term),
     Sub(Term, Term),
@@ -75,12 +75,12 @@ enum Expression {
     Call(Call),
 }
 
-enum Term {
+pub enum Term {
     Number(i32),
     Variable(String),
 }
 
-struct Call {
-    name: String,
-    args: Vec<Term>,
+pub struct Call {
+    pub name: String,
+    pub args: Vec<Term>,
 }
