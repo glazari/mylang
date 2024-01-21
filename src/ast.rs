@@ -15,6 +15,7 @@ pub struct Parameter {
     pub name: String,
 }
 
+#[derive(Debug)]
 pub enum Statement {
    If(If),
    While(While),
@@ -25,40 +26,48 @@ pub enum Statement {
    Assign(Assign),
 }
 
+#[derive(Debug)]
 pub struct If {
     pub condition: Conditional,
     pub body: Vec<Statement>,
     pub else_body: Vec<Statement>,
 }
 
+#[derive(Debug)]
 pub struct While {
     pub condition: Conditional,
     pub body: Vec<Statement>,
 }
 
+#[derive(Debug)]
 pub struct DoWhile {
     pub condition: Conditional,
     pub body: Vec<Statement>,
 }
 
+#[derive(Debug)]
 pub struct Let {
     pub name: String,
     pub value: Expression,
 }
 
+#[derive(Debug)]
 pub struct Asm {
     pub lines: Vec<String>,
 }
 
+#[derive(Debug)]
 pub struct Return {
     pub value: Expression,
 }
 
+#[derive(Debug)]
 pub struct Assign {
     pub name: String,
     pub value: Expression,
 }
 
+#[derive(Debug)]
 pub enum Conditional {
     Eq(Term, Term),
     NE(Term, Term),
@@ -66,6 +75,7 @@ pub enum Conditional {
     GT(Term, Term),
 }
 
+#[derive(Debug)]
 pub enum Expression {
     Term(Term),
     Add(Term, Term),
@@ -75,11 +85,13 @@ pub enum Expression {
     Call(Call),
 }
 
+#[derive(Debug)]
 pub enum Term {
     Number(i32),
     Variable(String),
 }
 
+#[derive(Debug)]
 pub struct Call {
     pub name: String,
     pub args: Vec<Term>,

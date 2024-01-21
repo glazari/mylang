@@ -12,8 +12,8 @@ pub struct ProgEnv {
 }
 
 pub struct FuncEnv {
-    function_params: Vec<String>,
-    local_variables: Vec<String>,
+    pub function_params: Vec<String>,
+    pub local_variables: Vec<String>,
 }
 
 impl CheckedProgram {

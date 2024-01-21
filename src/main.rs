@@ -20,7 +20,20 @@ fn primes() -> Program {
     p.functions.push(Function {
         name: "main".to_string(),
         params: Vec::new(),
-        body: vec![],
+        body: vec![
+            Statement::Let(Let {
+                name: "n".to_string(),
+                value: Expression::Term(Term::Number(100)),
+            }),
+            Statement::Let(Let {
+                name: "i".to_string(),
+                value: Expression::Term(Term::Number(2)),
+            }),
+            Statement::Let(Let {
+                name: "c".to_string(),
+                value: Expression::Add(Term::Variable("i".to_string()), Term::Number(1)), 
+            }),
+        ],
     });
 
     p

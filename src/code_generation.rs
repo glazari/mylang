@@ -45,24 +45,68 @@ _start:
         // TODO: initialized data section (global variables)
     }
 
-    fn generate_function(&mut self, function: &Function, _prog_env: &ProgEnv, _func_env: &FuncEnv) {
+    fn generate_function(&mut self, function: &Function, prog_env: &ProgEnv, func_env: &FuncEnv) {
         self.assembly.push_str(&format!("{}:\n", function.name));
         self.assembly.push_str("\t; prologue\n");
-        //self.assembly.push_str("    push rbp\n");
-        //self.assembly.push_str("    mov rbp, rsp\n");
-        //self.assembly.push_str(&format!(
-        //    "    sub rsp, {}\n",
-        //    func_env.local_variables.len() * 8
-        //));
+        // update stack pointer for local variables
 
-        // TODO: handle stack for local variables
+        let bytes_local_variables = func_env.local_variables.len() * 8;
+        self.assembly.push_str(format!("\tsub rsp, {}\n", bytes_local_variables).as_str());
 
         // TODO: generate code for function body
         self.assembly.push_str("\t; body\n");
+        for statement in &function.body {
+            self.generate_statement(statement, prog_env, func_env);
+        }
         
         self.assembly.push_str("\t; epilogue\n");
         // TODO: recover stack from local variables
+        self.assembly.push_str(format!("\tadd rsp, {}\n", bytes_local_variables).as_str());
         self.assembly.push_str("\tret\n");
+    }
+
+    fn generate_statement(&mut self, statement: &Statement, p_env: &ProgEnv, f_env: &FuncEnv) {
+        match statement {
+            Statement::Let(let_statement) => {
+                self.generate_let_statement(let_statement, p_env, f_env);
+            }
+            stmt => { panic!("{}", format!("generate_statement: unimplemented {:?}", stmt)); }
+            
+        }
+    }
+
+    fn generate_let_statement(&mut self, let_statement: &Let, p_env: &ProgEnv, f_env: &FuncEnv) {
+        self.generate_expression(&let_statement.value, p_env, f_env);
+        let var_num = f_env.local_variables.iter().position(|x| *x == let_statement.name).unwrap();
+        self.assembly.push_str(format!("\tmov [rsp + {}], rax\n", var_num * 8).as_str());
+    }
+
+    fn generate_expression(&mut self, expression: &Expression, p_env: &ProgEnv, f_env: &FuncEnv) {
+        match expression {
+            Expression::Term(term) => {
+                self.generate_term(term, p_env, f_env);
+            }
+            Expression::Add(term1, term2) => {
+                self.generate_term(term1, p_env, f_env);
+                self.assembly.push_str("\tpush rax\n");
+                self.generate_term(term2, p_env, f_env);
+                self.assembly.push_str("\tpop rbx\n");
+                self.assembly.push_str("\tadd rax, rbx\n");
+            }
+            expr => { panic!("{}", format!("generate_expression: unimplemented {:?}", expr)); }
+        }
+    }
+
+    fn generate_term(&mut self, term: &Term, _p_env: &ProgEnv, f_env: &FuncEnv) {
+        match term {
+            Term::Number(number) => {
+                self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
+            }
+            Term::Variable(name) => {
+                let var_num = f_env.local_variables.iter().position(|x| *x == *name).unwrap();
+                self.assembly.push_str(format!("\tmov rax, [rsp + {}]\n", var_num * 8).as_str());
+            }
+        }
     }
 
 }
