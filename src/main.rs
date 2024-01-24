@@ -1,6 +1,7 @@
 mod ast;
 mod checked_program;
 mod code_generation;
+mod tokenizer;
 mod primes_v1;
 mod primes_v2_flow_control;
 
@@ -32,6 +33,17 @@ fn primes() -> Program {
             Statement::Let(Let {
                 name: "c".to_string(),
                 value: Expression::Add(Term::Variable("i".to_string()), Term::Number(1)), 
+            }),
+            Statement::If(If {
+                condition: Conditional::LT(Term::Variable("i".to_string()), Term::Variable("n".to_string())),
+                body: vec![Statement::Assign(Assign {
+                    name: "i".to_string(),
+                    value:  Expression::Term(Term::Number(42)),
+                })],
+                else_body: vec![Statement::Assign(Assign {
+                    name: "i".to_string(),
+                    value:  Expression::Term(Term::Number(42)),
+                })],
             }),
         ],
     });
