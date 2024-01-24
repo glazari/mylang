@@ -69,11 +69,7 @@ fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
     skip_whitespace(ti);
     let body = parse_block(ti)?;
 
-    Ok(Function {
-        name: "main".to_string(),
-        params: Vec::new(),
-        body: Vec::new(),
-    })
+    Ok(Function { name, params, body })
 }
 
 fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
@@ -85,13 +81,70 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
 
     loop {
         skip_whitespace(ti);
-        let t = ti.next().ok_or(error_eof("statement"))?;
-        if t.token_type == TT::RBrace {
-            break;
+        let t = ti.peek().ok_or(error_eof("statement or }"))?;
+        match t.token_type {
+            TT::Keyword(KW::Let) => {
+                let let_statement = parse_let(ti)?;
+                statements.push(Statement::Let(let_statement));
+            }
+            TT::RBrace => break,
+            _ => return error("statement", t),
         }
+
     }
+
+    let t = ti.next().ok_or(error_eof("}"))?;
+    if t.token_type != TT::RBrace {
+        return error("}", t);
+    }
+
     Ok(statements)
 }
+
+fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
+    let t = ti.next().ok_or(error_eof("let"))?;
+    if t.token_type != TT::Keyword(KW::Let) {
+        return error("let", t);
+    }
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof("identifier"))?;
+    let name = match t.token_type {
+        TT::Ident(ref s) => s.clone(),
+        _ => return error("identifier", t),
+    };
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof("="))?;
+    if t.token_type != TT::Assign {
+        return error("=", t);
+    }
+
+    skip_whitespace(ti);
+    let value = parse_expression(ti)?;
+
+    let t = ti.next().ok_or(error_eof(";"))?;
+    if t.token_type != TT::Semicolon {
+        return error(";", t);
+    }
+
+    Ok(Let {
+        name,
+        value,
+    })
+}
+
+fn parse_expression(ti: &mut TI<'_>) -> Result<Expression, ParseError> {
+    let t = ti.peek().ok_or(error_eof("expression"))?;
+    match t.token_type {
+        TT::Int(n) => {
+            ti.next();
+            Ok(Expression::Int(n))
+        }
+        _ => error("expression", t),
+    }
+}
+
 
 fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     let mut params = Vec::new();

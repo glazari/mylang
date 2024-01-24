@@ -148,6 +148,9 @@ _start:
 
     fn generate_expression(&mut self, expression: &Expression, p_env: &ProgEnv, f_env: &FuncEnv) {
         match expression {
+            Expression::Int(number) => {
+                self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
+            }
             Expression::Term(term) => {
                 self.generate_term(term, p_env, f_env);
             }

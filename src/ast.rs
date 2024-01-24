@@ -80,6 +80,7 @@ pub enum Conditional {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
+    Int(i64),
     Term(Term),
     Add(Term, Term),
     Sub(Term, Term),

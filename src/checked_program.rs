@@ -150,7 +150,12 @@ impl CheckedProgram {
     }
 
     fn check_expression(expression: &Expression, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+        // chect:
+        // 1. all variables are defined
+        // 2. all function calls are defined and have the correct number of arguments
+        // 3. In the future check the types of the expression
         match expression {
+            Expression::Int(_) => {/* No checks needed, until we add type checking */},
             Expression::Term(term) => Self::check_term(term, f_env, p_env)?,
             Expression::Add(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?, 
             Expression::Sub(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?, 
