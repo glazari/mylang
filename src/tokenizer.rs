@@ -45,14 +45,13 @@ impl Token {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     EOF,
     Illegal,
     Ident(String),
     Keyword(Keyword),
     Int(i64),
-    Fn,
     LParen,
     RParen,
     LBrace,
@@ -77,7 +76,7 @@ pub enum TokenType {
     Comment(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Keyword {
     Fn,
     If,
@@ -92,7 +91,7 @@ pub enum Keyword {
 // keywords
 fn keywordOrIdent(ident: &str) -> TokenType {
     match ident {
-        "fn" => TokenType::Fn,
+        "fn" => TokenType::Keyword(Keyword::Fn),
         "if" => TokenType::Keyword(Keyword::If),
         "else" => TokenType::Keyword(Keyword::Else),
         "while" => TokenType::Keyword(Keyword::While),

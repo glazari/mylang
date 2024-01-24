@@ -8,10 +8,19 @@ mod primes_v2_flow_control;
 
 use crate::ast::*;
 use crate::code_generation::*;
+use crate::parser::parse_program;
 
 fn main() {
-    let prog = primes();
-    compile(prog, "primes").unwrap();
+    compile_file("test.mylang").expect("compile error");
+}
+
+fn compile_file(filename: &str) -> Result<(), String> {
+    let input = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+    let tokens = tokenizer::tokenize(&input);
+    let prog = parse_program(tokens).expect("parse error");
+
+    let out_filename = filename.replace(".mylang", "");
+    compile(prog, &out_filename)
 }
 
 fn primes() -> Program {
