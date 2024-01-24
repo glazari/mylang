@@ -1,9 +1,11 @@
 
+#[derive(Debug, PartialEq)]
 pub struct Program {
      pub functions: Vec<Function>,
      //constants: Vec<Constant>,
  }
 
+#[derive(Debug, PartialEq)]
 pub struct Function {
     pub name: String,
     pub params: Vec<Parameter>,
@@ -11,11 +13,12 @@ pub struct Function {
 }
 
 
+#[derive(Debug, PartialEq)]
 pub struct Parameter {
     pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Statement {
    If(If),
    While(While),
@@ -26,48 +29,48 @@ pub enum Statement {
    Assign(Assign),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct If {
     pub condition: Conditional,
     pub body: Vec<Statement>,
     pub else_body: Vec<Statement>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct While {
     pub condition: Conditional,
     pub body: Vec<Statement>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DoWhile {
     pub condition: Conditional,
     pub body: Vec<Statement>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Let {
     pub name: String,
     pub value: Expression,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Asm {
     pub lines: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Return {
     pub value: Expression,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Assign {
     pub name: String,
     pub value: Expression,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Conditional {
     Eq(Term, Term),
     NE(Term, Term),
@@ -75,7 +78,7 @@ pub enum Conditional {
     GT(Term, Term),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     Term(Term),
     Add(Term, Term),
@@ -85,13 +88,13 @@ pub enum Expression {
     Call(Call),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Term {
-    Number(i32),
+    Number(i64),
     Variable(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Call {
     pub name: String,
     pub args: Vec<Term>,

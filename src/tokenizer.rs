@@ -2,7 +2,7 @@ use std::iter::Peekable;
 use std::str::Chars;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-struct FileInfo {
+pub struct FileInfo {
     line: u32,
     column: u32,
     length: u32,
@@ -12,7 +12,7 @@ impl FileInfo {
     fn new(line: u32, column: u32, length: u32) -> FileInfo {
         FileInfo {line, column, length}
     }
-    fn zero() -> FileInfo {
+    pub fn zero() -> FileInfo {
         FileInfo {line: 0, column: 0, length: 0}
     }
 
@@ -33,20 +33,20 @@ impl FileInfo {
 
 }
 
-#[derive(Debug, PartialEq)]
-struct Token {
-    fi: FileInfo,
-    token_type: TokenType,
+#[derive(Debug, PartialEq, Clone)]
+pub struct Token {
+    pub fi: FileInfo,
+    pub token_type: TokenType,
 }
 impl Token {
     
-    fn new(token_type: TokenType, fi: FileInfo) -> Token {
+    pub fn new(token_type: TokenType, fi: FileInfo) -> Token {
         Token {fi, token_type}
     }
 }
 
 #[derive(Debug, PartialEq)]
-enum TokenType {
+pub enum TokenType {
     EOF,
     Illegal,
     Ident(String),
@@ -78,7 +78,7 @@ enum TokenType {
 }
 
 #[derive(Debug, PartialEq)]
-enum Keyword {
+pub enum Keyword {
     Fn,
     If,
     Else,
@@ -104,7 +104,7 @@ fn keywordOrIdent(ident: &str) -> TokenType {
     }
 }
 
-fn tokenize(input: &str) -> Vec<Token>{
+pub fn tokenize(input: &str) -> Vec<Token>{
     let mut tokens: Vec<Token> = Vec::new();
     let mut fi = FileInfo {line: 1, column: 1, length: 0};
     let mut chars = input.chars().peekable();

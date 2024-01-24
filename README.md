@@ -132,8 +132,11 @@ asm {
 let c = add(1, 2);
 ```
 
-GRAMMAR
+# GRAMMAR
 
+I initially thought that making the expressions not nested would help, but it makes paring
+harder since we need to know if we are parsing a term or an expression. Also
+the distinction between expression and conditional I think will make parsing more complicated.
 
 ```
 
@@ -147,11 +150,11 @@ block = "{" [ statement ] "}"
 
 statement = if | while | doWhile | let | asm | return | assignment
 
-if = "if" "(" conditional ")" block [ "else" block ]
+if = "if" "(" expression ")" block [ "else" block ]
 
-while = "while" "(" conditional ")" block
+while = "while" "(" expression ")" block
 
-doWhile = "do" block "while" "(" conditional ")" ";"
+doWhile = "do" block "while" "(" expression ")" ";"
 
 let = "let" identifier "=" expression ";"
 
@@ -164,21 +167,26 @@ line = ".*"
 return = "return" [ expression ] ";"
 
 // not nested expressions for now
-expression = term
-	term "+" term
-	term "-" term
-	term "*" term
-	term "/" term
-	term "%" term
+expression = identifier	
+	Int	
+	Bool
+	expression "+" expression
+	expression "-" expression
+	expression "*" expression
+	expression "/" expression
+	expression "%" expression
+	expression "==" expression
+	expression "!=" expression
+	expression "<" expression
+	expression ">" expression
 	call
 
-term = identifier | number
-
 identifier = "a-zA-Z_" { "a-zA-Z0-9_" }
+Int = "0-9" { "0-9" }
+Bool = "true" | "false"
 
-number = "0-9" { "0-9" }
-
-conditional = term ( "==" | "!=" | "<" | ">" ) term
+call = identifier "(" [ arguments ] ")"
+arguments = expression { "," expression }
 
 assignment = identifier "=" expression ";"
 ```
