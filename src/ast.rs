@@ -1,4 +1,8 @@
 
+// Some type aliases that are used to make the code more concise
+pub type Stmt = Statement;
+pub type Exp = Expression;
+
 #[derive(Debug, PartialEq)]
 pub struct Program {
      pub functions: Vec<Function>,
@@ -82,13 +86,9 @@ pub enum Conditional {
 pub enum Expression {
     Int(i64),
     Var(String),
-    Addition(Box<Expression>, Box<Expression>),
-    Subtraction(Box<Expression>, Box<Expression>),
+    Add(Box<Expression>, Box<Expression>),
+    Sub(Box<Expression>, Box<Expression>),
     Term(Term),
-    Add(Term, Term),
-    Sub(Term, Term),
-    Mul(Term, Term),
-    Div(Term, Term),
     Call(Call),
 }
 
@@ -103,3 +103,15 @@ pub struct Call {
     pub name: String,
     pub args: Vec<Term>,
 }
+
+
+
+impl Exp {
+    pub fn add(left: Exp, right: Exp) -> Exp {
+        Exp::Add(Box::new(left), Box::new(right))
+    }
+    pub fn sub(left: Exp, right: Exp) -> Exp {
+        Exp::Sub(Box::new(left), Box::new(right))
+    }
+}
+

@@ -1,6 +1,11 @@
 use std::iter::Peekable;
 use std::str::Chars;
 
+// aliases to make code more consise
+pub type TT = TokenType;
+pub type FI = FileInfo;
+pub type KW = Keyword;
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct FileInfo {
     pub line: usize,

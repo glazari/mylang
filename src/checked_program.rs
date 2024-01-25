@@ -180,13 +180,9 @@ impl CheckedProgram {
                     return Err(format!("Variable {} not found", variable));
                 }
             }
-            Expression::Addition(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::Subtraction(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::Add(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::Sub(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
             Expression::Term(term) => Self::check_term(term, f_env, p_env)?,
-            Expression::Add(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
-            Expression::Sub(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
-            Expression::Mul(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
-            Expression::Div(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
             Expression::Call(call) => {
                 if !p_env.function_names.contains(&call.name) {
                     return Err(format!("Function {} not found", call.name));

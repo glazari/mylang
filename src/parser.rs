@@ -1,13 +1,10 @@
 use crate::ast::*;
-use crate::tokenizer::{FileInfo, Keyword, Token, TokenType};
+use crate::tokenizer::{FI, KW, Token, TT};
 use std::iter::Peekable;
 use std::slice::Iter;
 
 // aliases to make code more consise
-type TT = TokenType;
 type TI<'a> = Peekable<Iter<'a, Token>>;
-type KW = Keyword;
-type Exp = Expression;
 
 #[derive(Debug, PartialEq)]
 pub struct ParseError {
@@ -25,7 +22,7 @@ fn error<T>(expected: &str, token: &Token) -> Result<T, ParseError> {
 fn error_eof(expected: &str) -> ParseError {
     ParseError {
         expected: expected.to_string(),
-        token: Token::new(TT::EOF, FileInfo::zero()),
+        token: Token::new(TT::EOF, FI::zero()),
     }
 }
 
@@ -151,13 +148,13 @@ fn parse_expression(ti: &mut TI<'_>) -> Result<Exp, ParseError> {
                 ti.next();
                 skip_whitespace(ti);
                 let right_exp = parse_expression(ti)?;
-                exp = Exp::Addition(Box::new(exp), Box::new(right_exp));
+                exp = Exp::Add(Box::new(exp), Box::new(right_exp));
             }
             TT::Minus => {
                 ti.next();
                 skip_whitespace(ti);
                 let right_exp = parse_expression(ti)?;
-                exp = Exp::Subtraction(Box::new(exp), Box::new(right_exp));
+                exp = Exp::Sub(Box::new(exp), Box::new(right_exp));
             }
             TT::Semicolon | TT::EOF => break,
             _ => return error("operator or ;", t),
@@ -230,14 +227,6 @@ impl ParseError {
     }
 }
 
-fn addition(left: Expression, right: Expression) -> Expression {
-    Expression::Addition(Box::new(left), Box::new(right))
-}
-
-fn subtraction(left: Expression, right: Expression) -> Expression {
-    Expression::Subtraction(Box::new(left), Box::new(right))
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -255,7 +244,7 @@ mod test {
                 params: Vec::new(),
                 body: vec![Statement::Let(Let {
                     name: "x".to_string(),
-                    value: addition(Expression::Int(42), Expression::Int(1)),
+                    value: Exp::add(Expression::Int(42), Expression::Int(1)),
                 })],
             }],
         };
@@ -269,7 +258,7 @@ mod test {
     fn test_parse_expression() {
         let input = "42 + 1 + 2 - 3";
         let tokens = tokenize(input);
-        let expected = addition(Exp::Int(42), addition(Exp::Int(1), subtraction(Exp::Int(2), Exp::Int(3))));
+        let expected = Exp::add(Exp::Int(42), Exp::add(Exp::Int(1), Exp::sub(Exp::Int(2), Exp::Int(3))));
 
         let mut ti = tokens.iter().peekable();
         let e = parse_expression(&mut ti);
