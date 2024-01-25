@@ -139,7 +139,8 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
 fn parse_expression(ti: &mut TI<'_>) -> Result<Exp, ParseError> {
     let t = ti.next().ok_or(error_eof("expression"))?;
     let mut exp = match t.token_type {
-        TT::Int(n) => { Expression::Int(n) }
+        TT::Int(n) => { Exp::Int(n) }
+        TT::Ident(ref s) => { Exp::Var(s.clone()) }
         _ => return error("expression", t),
     };
 

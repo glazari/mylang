@@ -81,6 +81,7 @@ pub enum Conditional {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Int(i64),
+    Var(String),
     Addition(Box<Expression>, Box<Expression>),
     Subtraction(Box<Expression>, Box<Expression>),
     Term(Term),

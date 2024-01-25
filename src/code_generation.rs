@@ -151,6 +151,10 @@ _start:
             Expression::Int(number) => {
                 self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
             }
+            Expression::Var(name) => {
+                let var_num = f_env.local_variables.iter().position(|x| *x == *name).unwrap();
+                self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_num * 8).as_str());
+            }
             Expression::Addition(e1, e2) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.assembly.push_str("\tpush rax\n");
