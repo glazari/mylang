@@ -7,6 +7,7 @@ use std::slice::Iter;
 type TT = TokenType;
 type TI<'a> = Peekable<Iter<'a, Token>>;
 type KW = Keyword;
+type Exp = Expression;
 
 #[derive(Debug, PartialEq)]
 pub struct ParseError {
@@ -135,11 +136,11 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     })
 }
 
-fn parse_expression(ti: &mut TI<'_>) -> Result<Expression, ParseError> {
+fn parse_expression(ti: &mut TI<'_>) -> Result<Exp, ParseError> {
     let t = ti.next().ok_or(error_eof("expression"))?;
     let mut exp = match t.token_type {
-        TT::Int(n) => { Ok(Expression::Int(n)) }
-        _ => error("expression", t),
+        TT::Int(n) => { Expression::Int(n) }
+        _ => return error("expression", t),
     };
 
     skip_whitespace(ti);
@@ -149,13 +150,13 @@ fn parse_expression(ti: &mut TI<'_>) -> Result<Expression, ParseError> {
                 ti.next();
                 skip_whitespace(ti);
                 let right_exp = parse_expression(ti)?;
-                exp = Ok(Expression::Addition(Box::new(exp?), Box::new(right_exp)));
+                exp = Exp::Addition(Box::new(exp), Box::new(right_exp));
             }
             TT::Minus => {
                 ti.next();
                 skip_whitespace(ti);
                 let right_exp = parse_expression(ti)?;
-                exp = Ok(Expression::Subtraction(Box::new(exp?), Box::new(right_exp)));
+                exp = Exp::Subtraction(Box::new(exp), Box::new(right_exp));
             }
             TT::Semicolon | TT::EOF => break,
             _ => return error("operator or ;", t),
@@ -163,7 +164,7 @@ fn parse_expression(ti: &mut TI<'_>) -> Result<Expression, ParseError> {
     }
 
 
-    exp
+    Ok(exp)
 }
 
 
