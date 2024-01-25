@@ -123,6 +123,7 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     skip_whitespace(ti);
     let value = parse_expression(ti)?;
 
+    skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof(";"))?;
     if t.token_type != TT::Semicolon {
         return error(";", t);
@@ -135,14 +136,28 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
 }
 
 fn parse_expression(ti: &mut TI<'_>) -> Result<Expression, ParseError> {
-    let t = ti.peek().ok_or(error_eof("expression"))?;
-    match t.token_type {
-        TT::Int(n) => {
-            ti.next();
-            Ok(Expression::Int(n))
-        }
+    let t = ti.next().ok_or(error_eof("expression"))?;
+    let mut exp = match t.token_type {
+        TT::Int(n) => { Ok(Expression::Int(n)) }
         _ => error("expression", t),
+    };
+
+    skip_whitespace(ti);
+    while let Some(t) = ti.peek() {
+        match t.token_type {
+            TT::Plus => {
+                ti.next();
+                skip_whitespace(ti);
+                let right_exp = parse_expression(ti)?;
+                exp = Ok(Expression::Addition(Box::new(exp?), Box::new(right_exp)));
+            }
+            TT::Semicolon => break,
+            _ => return error("operator or ;", t),
+        }
     }
+
+
+    exp
 }
 
 
@@ -215,20 +230,20 @@ mod test {
 
     #[test]
     fn test_parse_program() {
-        let mut tokens = tokenize("fn main() { let x = 42; }");
+        let tokens = tokenize("fn main() { let x = 42 + 1; }");
         let expected = Program {
             functions: vec![Function {
                 name: "main".to_string(),
                 params: Vec::new(),
                 body: vec![Statement::Let(Let {
                     name: "x".to_string(),
-                    value: Expression::Term(Term::Number(42)),
+                    value: Expression::Addition(Box::new(Expression::Int(42)), Box::new(Expression::Int(1))),
                 })],
             }],
         };
 
-        //let p = parse_program(&mut tokens);
+        let p = parse_program(tokens);
 
-        //assert_eq!(p, Ok(expected));
+        assert_eq!(p, Ok(expected));
     }
 }

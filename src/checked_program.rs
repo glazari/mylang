@@ -156,6 +156,7 @@ impl CheckedProgram {
         // 3. In the future check the types of the expression
         match expression {
             Expression::Int(_) => {/* No checks needed, until we add type checking */},
+            Expression::Addition(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
             Expression::Term(term) => Self::check_term(term, f_env, p_env)?,
             Expression::Add(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?, 
             Expression::Sub(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?, 
@@ -173,6 +174,12 @@ impl CheckedProgram {
 
             }
         }
+        Ok(())
+    }
+
+    fn check_expressio_pair(e1: &Expression, e2: &Expression, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+        Self::check_expression(&e1, f_env, p_env)?;
+        Self::check_expression(&e2, f_env, p_env)?;
         Ok(())
     }
 
