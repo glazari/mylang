@@ -158,6 +158,13 @@ _start:
                 self.assembly.push_str("\tpop rbx\n");
                 self.assembly.push_str("\tadd rax, rbx\n");
             }
+            Expression::Subtraction(e1, e2) => {
+                self.generate_expression(e1, p_env, f_env);
+                self.assembly.push_str("\tpush rax\n");
+                self.generate_expression(e2, p_env, f_env);
+                self.assembly.push_str("\tpop rbx\n");
+                self.assembly.push_str("\tsub rax, rbx\n");
+            }
             Expression::Term(term) => {
                 self.generate_term(term, p_env, f_env);
             }

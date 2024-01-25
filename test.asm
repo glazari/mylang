@@ -20,6 +20,10 @@ main:
 	mov rax, 2
 	push rax
 	mov rax, 3
+	push rax
+	mov rax, 1
+	pop rbx
+	sub rax, rbx
 	pop rbx
 	add rax, rbx
 	pop rbx

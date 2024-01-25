@@ -151,7 +151,13 @@ fn parse_expression(ti: &mut TI<'_>) -> Result<Expression, ParseError> {
                 let right_exp = parse_expression(ti)?;
                 exp = Ok(Expression::Addition(Box::new(exp?), Box::new(right_exp)));
             }
-            TT::Semicolon => break,
+            TT::Minus => {
+                ti.next();
+                skip_whitespace(ti);
+                let right_exp = parse_expression(ti)?;
+                exp = Ok(Expression::Subtraction(Box::new(exp?), Box::new(right_exp)));
+            }
+            TT::Semicolon | TT::EOF => break,
             _ => return error("operator or ;", t),
         }
     }
@@ -222,11 +228,21 @@ impl ParseError {
     }
 }
 
+fn addition(left: Expression, right: Expression) -> Expression {
+    Expression::Addition(Box::new(left), Box::new(right))
+}
+
+fn subtraction(left: Expression, right: Expression) -> Expression {
+    Expression::Subtraction(Box::new(left), Box::new(right))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::tokenizer::*;
     use pretty_assertions::assert_eq;
+
+    type Exp = Expression;
 
     #[test]
     fn test_parse_program() {
@@ -237,7 +253,7 @@ mod test {
                 params: Vec::new(),
                 body: vec![Statement::Let(Let {
                     name: "x".to_string(),
-                    value: Expression::Addition(Box::new(Expression::Int(42)), Box::new(Expression::Int(1))),
+                    value: addition(Expression::Int(42), Expression::Int(1)),
                 })],
             }],
         };
@@ -245,5 +261,22 @@ mod test {
         let p = parse_program(tokens);
 
         assert_eq!(p, Ok(expected));
+    }
+
+    #[test]
+    fn test_parse_expression() {
+        let input = "42 + 1 + 2 - 3";
+        let tokens = tokenize(input);
+        let expected = addition(Exp::Int(42), addition(Exp::Int(1), subtraction(Exp::Int(2), Exp::Int(3))));
+
+        let mut ti = tokens.iter().peekable();
+        let e = parse_expression(&mut ti);
+
+        if let Err(e) = e {
+            e.pretty_print(input);
+            panic!("parse error");
+        }
+
+        assert_eq!(e, Ok(expected));
     }
 }

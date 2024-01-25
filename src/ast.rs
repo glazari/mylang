@@ -82,6 +82,7 @@ pub enum Conditional {
 pub enum Expression {
     Int(i64),
     Addition(Box<Expression>, Box<Expression>),
+    Subtraction(Box<Expression>, Box<Expression>),
     Term(Term),
     Add(Term, Term),
     Sub(Term, Term),

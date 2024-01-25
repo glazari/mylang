@@ -157,6 +157,7 @@ impl CheckedProgram {
         match expression {
             Expression::Int(_) => {/* No checks needed, until we add type checking */},
             Expression::Addition(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::Subtraction(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
             Expression::Term(term) => Self::check_term(term, f_env, p_env)?,
             Expression::Add(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?, 
             Expression::Sub(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?, 
