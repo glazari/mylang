@@ -175,6 +175,7 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     }
 
     loop {
+        skip_whitespace(ti);
         let t = ti.next().ok_or(error_eof("parameter name or )"))?;
         let par = match t.token_type {
             TT::Ident(ref s) => Parameter { name: s.clone() },
@@ -269,5 +270,26 @@ mod test {
         }
 
         assert_eq!(e, Ok(expected));
+    }
+
+    #[test]
+    fn test_parse_parameters() {
+        let input = "(x, y, z)";
+        let tokens = tokenize(input);
+        let expected = vec![
+            Parameter { name: "x".to_string() },
+            Parameter { name: "y".to_string() },
+            Parameter { name: "z".to_string() },
+        ];
+
+        let mut ti = tokens.iter().peekable();
+        let p = parse_params(&mut ti);
+
+        if let Err(e) = p {
+            e.pretty_print(input);
+            panic!("parse error");
+        }
+
+        assert_eq!(p, Ok(expected));
     }
 }
