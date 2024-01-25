@@ -184,6 +184,29 @@ fn skip_whitespace(ti: &mut TI<'_>) {
     }
 }
 
+impl ParseError {
+    pub fn pretty_print(&self, input: &str) {
+        let mut lines = input.lines();
+        let mut line = lines.next().unwrap();
+        let mut line_num = 1;
+
+        while line_num < self.token.fi.line {
+            line = lines.next().unwrap();
+            line_num += 1;
+        }
+
+
+        println!("Error at line {}", self.token.fi.line);
+        // fixed space for line number 3 digits
+        println!("{:3}: {}", self.token.fi.line, line);
+        let red = "\x1b[31m";
+        let reset = "\x1b[0m";
+        println!("     {}{}^{}", red,"-".repeat(self.token.fi.column - 1), reset);
+        println!("Error: expected `{}` but found {:?}", self.expected, self.token.token_type);
+        println!();
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

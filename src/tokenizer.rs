@@ -3,13 +3,13 @@ use std::str::Chars;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct FileInfo {
-    line: u32,
-    column: u32,
-    length: u32,
+    pub line: usize,
+    pub column: usize,
+    pub length: usize,
 }
 
 impl FileInfo {
-    fn new(line: u32, column: u32, length: u32) -> FileInfo {
+    fn new(line: usize, column: usize, length: usize) -> FileInfo {
         FileInfo {line, column, length}
     }
     pub fn zero() -> FileInfo {
@@ -222,7 +222,7 @@ mod test {
     use super::*;
     use pretty_assertions::assert_eq;
 
-    fn token(tt: TokenType, line: u32, column: u32, length: u32) -> Token {
+    fn token(tt: TokenType, line: usize, column: usize, length: usize) -> Token {
         Token::new(tt, FileInfo::new(line, column, length))
     }
 
@@ -230,7 +230,7 @@ mod test {
     fn test_tokenize() {
         let input = "fn add(x, y) { x + y }";
         let expected = vec![
-            token(TokenType::Fn, 1, 1, 2),
+            token(TokenType::Keyword(Keyword::Fn), 1, 1, 2),
             token(TokenType::Whitespace, 1, 3, 1),
             token(TokenType::Ident("add".to_string()), 1, 4, 3),
             token(TokenType::LParen, 1, 7, 1),
