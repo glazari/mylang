@@ -61,7 +61,11 @@ _start:
         }
         
         self.assembly.push_str("\t; epilogue\n");
-        // TODO: recover stack from local variables
+        self.generate_function_epilogue(func_env);
+    }
+
+    fn generate_function_epilogue(&mut self, func_env: &FuncEnv) {
+        let bytes_local_variables = func_env.local_variables.len() * 8;
         self.assembly.push_str(format!("\tadd rsp, {}\n", bytes_local_variables).as_str());
         self.assembly.push_str("\tpop rbp\n");
         self.assembly.push_str("\tret\n");
@@ -77,6 +81,11 @@ _start:
             }
             Statement::Assign(assign_statement) => {
                 self.generate_assign_statement(assign_statement, p_env, f_env);
+            }
+            Statement::Return(return_statement) => {
+                self.generate_expression(&return_statement.value, p_env, f_env);
+                self.assembly.push_str("\tmov [rbp + 16], rax\n");
+                self.generate_function_epilogue(f_env);
             }
             stmt => { panic!("{}", format!("generate_statement: unimplemented {:?}", stmt)); }
             
@@ -169,11 +178,28 @@ _start:
                 self.assembly.push_str("\tpop rbx\n");
                 self.assembly.push_str("\tsub rax, rbx\n");
             }
+            Expression::Call(call) => {
+                self.generate_call(call, p_env, f_env);
+            }
             Expression::Term(term) => {
                 self.generate_term(term, p_env, f_env);
             }
             expr => { panic!("{}", format!("generate_expression: unimplemented {:?}", expr)); }
         }
+    }
+
+    fn generate_call(&mut self, call: &Call, p_env: &ProgEnv, f_env: &FuncEnv) {
+        for arg in &call.args {
+            self.generate_expression(arg, p_env, f_env);
+            self.assembly.push_str("\tpush rax\n");
+        }
+        // save space for return value
+        self.assembly.push_str("\tsub rsp, 8\n");
+        self.assembly.push_str(format!("\tcall {}\n", call.name).as_str());
+        let stack_offset = call.args.len() * 8 + 8;
+        self.assembly.push_str(format!("\tadd rsp, {}\n", stack_offset).as_str());
+        // move return value to rax
+        self.assembly.push_str("\tmov rax, [rsp - 8]\n");
     }
 
     fn generate_term(&mut self, term: &Term, _p_env: &ProgEnv, f_env: &FuncEnv) {

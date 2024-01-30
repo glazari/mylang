@@ -85,6 +85,14 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
                 let let_statement = parse_let(ti)?;
                 statements.push(Statement::Let(let_statement));
             }
+            TT::Keyword(KW::Return) => {
+                let return_statement = parse_return(ti)?;
+                statements.push(Statement::Return(return_statement));
+            }
+            TT::Ident(_) => {
+                let stmt = parse_ident_start_statement(ti)?;
+                statements.push(stmt);
+            }
             TT::RBrace => break,
             _ => return error("statement", t),
         }
@@ -98,6 +106,56 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
 
     Ok(statements)
 }
+
+fn parse_return(ti: &mut TI<'_>) -> Result<Return, ParseError> {
+    let t = ti.next().ok_or(error_eof("return"))?;
+    if t.token_type != TT::Keyword(KW::Return) {
+        return error("return", t);
+    }
+
+    skip_whitespace(ti);
+    let value = parse_expression(ti)?;
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof(";"))?;
+    if t.token_type != TT::Semicolon {
+        return error(";", t);
+    }
+
+    Ok(Return { value })
+}
+
+fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError> {
+    let t = ti.next().ok_or(error_eof("identifier"))?;
+    let name = match t.token_type {
+        TT::Ident(ref s) => s.clone(),
+        _ => return error("identifier", t),
+    };
+
+    skip_whitespace(ti);
+    let t = ti.peek().ok_or(error_eof("assignment or call"))?;
+    match t.token_type {
+        TT::Assign => {
+            ti.next();
+            skip_whitespace(ti);
+            let value = parse_expression(ti)?;
+            skip_whitespace(ti);
+            let t = ti.next().ok_or(error_eof(";"))?;
+            if t.token_type != TT::Semicolon {
+                return error(";", t);
+            }
+            Ok(Statement::Assign(Assign {
+                name,
+                value,
+            }))
+        }
+        TT::LParen => {
+            panic!("call not implemented");
+        }
+        _ => error("assignment or call", t),
+    }
+}
+
 
 fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     let t = ti.next().ok_or(error_eof("let"))?;
@@ -137,7 +195,7 @@ fn parse_expression(ti: &mut TI<'_>) -> Result<Exp, ParseError> {
     let t = ti.next().ok_or(error_eof("expression"))?;
     let mut exp = match t.token_type {
         TT::Int(n) => { Exp::Int(n) }
-        TT::Ident(ref s) => { Exp::Var(s.clone()) }
+        TT::Ident(ref s) => { parse_ident_start_expression(ti, s.clone())? }
         _ => return error("expression", t),
     };
 
@@ -163,6 +221,49 @@ fn parse_expression(ti: &mut TI<'_>) -> Result<Exp, ParseError> {
 
 
     Ok(exp)
+}
+
+fn parse_ident_start_expression(ti: &mut TI<'_>, name: String) -> Result<Exp, ParseError> {
+    skip_whitespace(ti);
+    let t = ti.peek().ok_or(error_eof("variable or call"))?;
+    match t.token_type {
+        TT::LParen => {
+            let call = parse_call(ti, name)?;
+            Ok(Exp::Call(call))
+
+        }
+        _ => Ok(Exp::Var(name)),
+    }
+}
+
+fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
+    let mut args = Vec::new();
+    let t = ti.next().ok_or(error_eof("("))?;
+    if t.token_type != TT::LParen {
+        return error("(", t);
+    }
+
+    loop {
+        skip_whitespace(ti);
+        let t = ti.peek().ok_or(error_eof("argument or )"))?;
+        let arg = match t.token_type {
+            TT::RParen => {
+                ti.next();
+                break;
+            },
+            _ => parse_expression(ti)?,
+        };
+        args.push(arg);
+
+        let t = ti.next().ok_or(error_eof(")"))?;
+        match t.token_type {
+            TT::RParen => break,
+            TT::Comma => continue,
+            _ => return error("comma or )", t),
+        }
+    }
+
+    Ok(Call { name, args })
 }
 
 

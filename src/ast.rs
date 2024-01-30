@@ -101,7 +101,7 @@ pub enum Term {
 #[derive(Debug, PartialEq)]
 pub struct Call {
     pub name: String,
-    pub args: Vec<Term>,
+    pub args: Vec<Expression>,
 }
 
 
