@@ -92,10 +92,15 @@ _start:
         }
     }
 
+    fn get_var_address(var_name: &str, f_env: &FuncEnv) -> usize {
+        let var_num = f_env.local_variables.iter().position(|x| *x == var_name).unwrap();
+        (var_num + 1) * 8
+    }
+
     fn generate_assign_statement(&mut self, assign_statement: &Assign, p_env: &ProgEnv, f_env: &FuncEnv) {
         self.generate_expression(&assign_statement.value, p_env, f_env);
-        let var_num = f_env.local_variables.iter().position(|x| *x == assign_statement.name).unwrap();
-        self.assembly.push_str(format!("\tmov [rbp - {}], rax\n", var_num * 8).as_str());
+        let var_address = Self::get_var_address(&assign_statement.name, f_env);
+        self.assembly.push_str(format!("\tmov [rbp - {}], rax\n", var_address).as_str());
     }
 
     fn generate_if_statement(&mut self, if_statement: &If, p_env: &ProgEnv, f_env: &FuncEnv) {
@@ -151,8 +156,8 @@ _start:
 
     fn generate_let_statement(&mut self, let_statement: &Let, p_env: &ProgEnv, f_env: &FuncEnv) {
         self.generate_expression(&let_statement.value, p_env, f_env);
-        let var_num = f_env.local_variables.iter().position(|x| *x == let_statement.name).unwrap();
-        self.assembly.push_str(format!("\tmov [rbp - {}], rax\n", var_num * 8).as_str());
+        let var_address = Self::get_var_address(&let_statement.name, f_env);
+        self.assembly.push_str(format!("\tmov [rbp - {}], rax\n", var_address).as_str());
     }
 
     fn generate_expression(&mut self, expression: &Expression, p_env: &ProgEnv, f_env: &FuncEnv) {
@@ -161,8 +166,8 @@ _start:
                 self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
             }
             Expression::Var(name) => {
-                let var_num = f_env.local_variables.iter().position(|x| *x == *name).unwrap();
-                self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_num * 8).as_str());
+                let var_address = Self::get_var_address(name, f_env);
+                self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_address).as_str());
             }
             Expression::Add(e1, e2) => {
                 self.generate_expression(e1, p_env, f_env);
@@ -208,8 +213,8 @@ _start:
                 self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
             }
             Term::Variable(name) => {
-                let var_num = f_env.local_variables.iter().position(|x| *x == *name).unwrap();
-                self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_num * 8).as_str());
+                let var_address = Self::get_var_address(name, f_env);
+                self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_address).as_str());
             }
         }
     }
