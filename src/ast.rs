@@ -88,6 +88,12 @@ pub enum Expression {
     Var(String),
     Add(Box<Expression>, Box<Expression>),
     Sub(Box<Expression>, Box<Expression>),
+    Mul(Box<Expression>, Box<Expression>),
+    Div(Box<Expression>, Box<Expression>),
+    Eq(Box<Expression>, Box<Expression>),
+    Ne(Box<Expression>, Box<Expression>),
+    LT(Box<Expression>, Box<Expression>),
+    GT(Box<Expression>, Box<Expression>),
     Term(Term),
     Call(Call),
 }
@@ -112,6 +118,24 @@ impl Exp {
     }
     pub fn sub(left: Exp, right: Exp) -> Exp {
         Exp::Sub(Box::new(left), Box::new(right))
+    }
+    pub fn mul(left: Exp, right: Exp) -> Exp {
+        Exp::Mul(Box::new(left), Box::new(right))
+    }
+    pub fn div(left: Exp, right: Exp) -> Exp {
+        Exp::Div(Box::new(left), Box::new(right))
+    }
+    pub fn eq(left: Exp, right: Exp) -> Exp {
+        Exp::Eq(Box::new(left), Box::new(right))
+    }
+    pub fn ne(left: Exp, right: Exp) -> Exp {
+        Exp::Ne(Box::new(left), Box::new(right))
+    }
+    pub fn lt(left: Exp, right: Exp) -> Exp {
+        Exp::LT(Box::new(left), Box::new(right))
+    }
+    pub fn gt(left: Exp, right: Exp) -> Exp {
+        Exp::GT(Box::new(left), Box::new(right))
     }
 }
 

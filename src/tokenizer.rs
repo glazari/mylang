@@ -261,4 +261,22 @@ mod test {
 
         assert_eq!(tokens, expected);
     }
+
+    #[test]
+    #[ignore]
+    fn test_tokenize_neq() {
+        let input = "x != y";
+        let expected = vec![
+            token(TokenType::Ident("x".to_string()), 1, 1, 1),
+            token(TokenType::Whitespace, 1, 2, 1),
+            token(TokenType::NotEq, 1, 3, 2),
+            token(TokenType::Whitespace, 1, 5, 1),
+            token(TokenType::Ident("y".to_string()), 1, 6, 1),
+            token(TokenType::EOF, 1, 7, 0),
+        ];
+
+        let tokens = tokenize(input);
+
+        assert_eq!(tokens, expected);
+    }
 }

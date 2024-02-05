@@ -26,10 +26,12 @@ which is used to create the labels.
 The user still needs to know the assembly for the cmp and the jump type (jne, jg, jle...).
 
 # todo
-- Refactor to use stack variables instead of keeping track of registers.
-- Add a way to declare variables.
-- Add stack pointer updates in functions, reserve enough space for local variables. (only if further calls are made.
-- Add instructions with variables (mov eax [var1])
+- Add function paramaters (needs fixing, some bug)
+- Add expression priority parsing (mult, div, greater, less, equal)
+- Fix tokenizing of !=
+- Add if else statements
+	- conditional is an expression whose top level is a comparison	
+- Add while loops
 
 
 # Minimal language

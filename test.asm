@@ -15,19 +15,21 @@ main:
 	mov rbp, rsp
 	sub rsp, 8
 	; body
-	mov rax, 2
+	mov rax, 1
 	mov [rbp - 8], rax
 	mov rax, [rbp - 8]
 	push rax
-	mov rax, 1
+	mov rax, 2
+	push rax
+	mov rax, 3
+	push rax
+	mov rax, 4
 	pop rbx
 	add rax, rbx
-	mov [rbp - 8], rax
-	mov rax, [rbp - 8]
 	push rax
 	sub rsp, 8
 	call add
-	add rsp, 8
+	add rsp, 24
 	mov rax, [rsp - 8]
 	pop rbx
 	add rax, rbx
@@ -40,26 +42,18 @@ add:
 	; prologue
 	push rbp
 	mov rbp, rsp
-	sub rsp, 16
+	sub rsp, 0
 	; body
-	mov rax, 2
+	mov rax, [rbp - 0]
 	push rax
-	mov rax, 1
+	mov rax, [rbp - -8]
 	pop rbx
 	add rax, rbx
-	mov [rbp - 8], rax
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 3
-	pop rbx
-	add rax, rbx
-	mov [rbp - 16], rax
-	mov rax, [rbp - 16]
 	mov [rbp + 16], rax
-	add rsp, 16
+	add rsp, 0
 	pop rbp
 	ret
 	; epilogue
-	add rsp, 16
+	add rsp, 0
 	pop rbp
 	ret

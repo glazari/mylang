@@ -182,6 +182,12 @@ impl CheckedProgram {
             }
             Expression::Add(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
             Expression::Sub(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::Mul(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::Div(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::Eq(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::Ne(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::LT(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::GT(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
             Expression::Term(term) => Self::check_term(term, f_env, p_env)?,
             Expression::Call(call) => {
                 if !p_env.function_names.contains(&call.name) {

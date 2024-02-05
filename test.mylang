@@ -1,11 +1,8 @@
 fn main() {
-  let b = 2;
-  b = b + 1;
-  b = b + add();
+  let b = 1;
+  b = b + add(2, 3+4);
 }
 
-fn add() {
-  let a = 2 + 1;
-  let b = a + 3;
-  return b;
+fn add(a, b) {
+  return a + b;
 }

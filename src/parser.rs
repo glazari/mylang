@@ -114,7 +114,7 @@ fn parse_return(ti: &mut TI<'_>) -> Result<Return, ParseError> {
     }
 
     skip_whitespace(ti);
-    let value = parse_expression(ti)?;
+    let value = parse_expression(ti, Precedence::Lowest)?;
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof(";"))?;
@@ -138,7 +138,7 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
         TT::Assign => {
             ti.next();
             skip_whitespace(ti);
-            let value = parse_expression(ti)?;
+            let value = parse_expression(ti, Precedence::Lowest)?;
             skip_whitespace(ti);
             let t = ti.next().ok_or(error_eof(";"))?;
             if t.token_type != TT::Semicolon {
@@ -177,7 +177,7 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     }
 
     skip_whitespace(ti);
-    let value = parse_expression(ti)?;
+    let value = parse_expression(ti, Precedence::Lowest)?;
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof(";"))?;
@@ -191,7 +191,7 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     })
 }
 
-fn parse_expression(ti: &mut TI<'_>) -> Result<Exp, ParseError> {
+fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError> {
     let t = ti.next().ok_or(error_eof("expression"))?;
     let mut exp = match t.token_type {
         TT::Int(n) => { Exp::Int(n) }
@@ -201,20 +201,55 @@ fn parse_expression(ti: &mut TI<'_>) -> Result<Exp, ParseError> {
 
     skip_whitespace(ti);
     while let Some(t) = ti.peek() {
+        let next_prec = precedence(t);
+        if prec >= next_prec {
+            break;
+        }
         match t.token_type {
             TT::Plus => {
                 ti.next();
                 skip_whitespace(ti);
-                let right_exp = parse_expression(ti)?;
+                let right_exp = parse_expression(ti, next_prec)?;
                 exp = Exp::Add(Box::new(exp), Box::new(right_exp));
             }
             TT::Minus => {
                 ti.next();
                 skip_whitespace(ti);
-                let right_exp = parse_expression(ti)?;
+                let right_exp = parse_expression(ti, next_prec)?;
                 exp = Exp::Sub(Box::new(exp), Box::new(right_exp));
             }
+            TT::Asterisk => {
+                ti.next();
+                skip_whitespace(ti);
+                let right_exp = parse_expression(ti, next_prec)?;
+                exp = Exp::Mul(Box::new(exp), Box::new(right_exp));
+            }
+            TT::Slash => {
+                ti.next();
+                skip_whitespace(ti);
+                let right_exp = parse_expression(ti, next_prec)?;
+                exp = Exp::Div(Box::new(exp), Box::new(right_exp));
+            }
+            TT::Eq => {
+                ti.next();
+                skip_whitespace(ti);
+                let right_exp = parse_expression(ti, next_prec)?;
+                exp = Exp::Eq(Box::new(exp), Box::new(right_exp));
+            }
+            TT::Lt => {
+                ti.next();
+                skip_whitespace(ti);
+                let right_exp = parse_expression(ti, next_prec)?;
+                exp = Exp::LT(Box::new(exp), Box::new(right_exp));
+            }
+            TT::Gt => {
+                ti.next();
+                skip_whitespace(ti);
+                let right_exp = parse_expression(ti, next_prec)?;
+                exp = Exp::GT(Box::new(exp), Box::new(right_exp));
+            }
             TT::Semicolon | TT::EOF => break,
+            TT::Comma | TT::RParen => break, // expressions can appear as arguments to function calls
             _ => return error("operator or ;", t),
         }
     }
@@ -251,7 +286,7 @@ fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
                 ti.next();
                 break;
             },
-            _ => parse_expression(ti)?,
+            _ => parse_expression(ti, Precedence::Lowest)?,
         };
         args.push(arg);
 
@@ -327,7 +362,31 @@ impl ParseError {
         println!("Error: expected `{}` but found {:?}", self.expected, self.token.token_type);
         println!();
     }
+
+
 }
+
+#[derive(Debug, PartialEq, PartialOrd)]
+enum Precedence {
+    Lowest,
+    Comparison,
+    Sum,
+    Product,
+    Prefix,
+    Call,
+}
+
+fn precedence(t: &Token) -> Precedence {
+    match t.token_type {
+        TT::Eq | TT::NotEq | TT::Lt | TT::Gt => Precedence::Comparison,
+        TT::Plus | TT::Minus => Precedence::Sum,
+        TT::Asterisk | TT::Slash => Precedence::Product,
+        TT::LParen => Precedence::Call,
+        _ => Precedence::Lowest,
+    }
+}
+
+
 
 #[cfg(test)]
 mod test {
@@ -356,21 +415,100 @@ mod test {
         assert_eq!(p, Ok(expected));
     }
 
+    // helper functions to make the tests more concise
+    fn add(x: Exp, y: Exp) -> Exp {
+        Exp::add(x, y)
+    }
+    fn sub(x: Exp, y: Exp) -> Exp {
+        Exp::sub(x, y)
+    }
+    fn int(n: i64) -> Exp {
+        Exp::Int(n)
+    }
+    fn mul(x: Exp, y: Exp) -> Exp {
+        Exp::mul(x, y)
+    }
+    fn div(x: Exp, y: Exp) -> Exp {
+        Exp::div(x, y)
+    }
+    fn eq(x: Exp, y: Exp) -> Exp {
+        Exp::eq(x, y)
+    }
+    fn ne(x: Exp, y: Exp) -> Exp {
+        Exp::ne(x, y)
+    }
+    fn lt(x: Exp, y: Exp) -> Exp {
+        Exp::lt(x, y)
+    }
+    fn gt(x: Exp, y: Exp) -> Exp {
+        Exp::gt(x, y)
+    }
+    
+
     #[test]
     fn test_parse_expression() {
-        let input = "42 + 1 + 2 - 3";
-        let tokens = tokenize(input);
-        let expected = Exp::add(Exp::Int(42), Exp::add(Exp::Int(1), Exp::sub(Exp::Int(2), Exp::Int(3))));
-
-        let mut ti = tokens.iter().peekable();
-        let e = parse_expression(&mut ti);
-
-        if let Err(e) = e {
-            e.pretty_print(input);
-            panic!("parse error");
+        struct Test {
+            input: &'static str,
+            expected: Exp,
         }
 
-        assert_eq!(e, Ok(expected));
+        let cases = vec![
+            Test {
+                input: "42 + 1 + 2 - 3",
+                expected: sub(add(add(int(42), int(1)), int(2)), int(3)),
+            },
+            Test {
+                input: "42 + 1 * 2 - 3",
+                expected: sub(add(int(42), mul(int(1), int(2))), int(3)),
+            },
+            Test {
+                input: "42 + 1 * 2 / 3",
+                expected: add(int(42), div(mul(int(1), int(2)), int(3))),
+            },
+            Test {
+                input: "42 + 1 * 2 / 3 == 4 + 5 * 6",
+                expected: eq(
+                    add(int(42), div(mul(int(1), int(2)), int(3))),
+                    add(int(4), mul(int(5), int(6))),
+                ),
+            },
+            //Test {
+            //    input: "42 + 1 * 2 / 3 != 4 + 5 * 6",
+            //    expected: ne(
+            //        add(int(42), div(mul(int(1), int(2)), int(3))),
+            //        add(int(4), mul(int(5), int(6))),
+            //    ),
+            //},
+            Test {
+                input: "42 + 1 * 2 / 3 < 4 + 5 * 6",
+                expected: lt(
+                    add(int(42), div(mul(int(1), int(2)), int(3))),
+                    add(int(4), mul(int(5), int(6))),
+                ),
+            },
+            Test {
+                input: "42 + 1 * 2 / 3 > 4 + 5 * 6",
+                expected: gt(
+                    add(int(42), div(mul(int(1), int(2)), int(3))),
+                    add(int(4), mul(int(5), int(6))),
+                ),
+            },
+
+        ];
+
+        for t in cases {
+            let tokens = tokenize(t.input);
+            let mut ti = tokens.iter().peekable();
+            println!("input: {}", t.input);
+            let e = parse_expression(&mut ti, Precedence::Lowest);
+
+            if let Err(e) = e {
+                e.pretty_print(t.input);
+                panic!("parse error");
+            }
+
+            assert_eq!(e, Ok(t.expected), "input: {}", t.input);
+        }
     }
 
     #[test]

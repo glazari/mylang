@@ -92,9 +92,17 @@ _start:
         }
     }
 
-    fn get_var_address(var_name: &str, f_env: &FuncEnv) -> usize {
-        let var_num = f_env.local_variables.iter().position(|x| *x == var_name).unwrap();
-        (var_num + 1) * 8
+    fn get_var_address(var_name: &str, f_env: &FuncEnv) -> i64 {
+        let var_num = f_env.local_variables.iter().position(|x| *x == var_name);
+        if let Some(var_num) = var_num {
+            return (var_num as i64 + 1) * 8;
+        }
+        let param_num = f_env.function_params.iter().position(|x| *x == var_name);
+        if let Some(param_num) = param_num {
+            let num_rev = f_env.function_params.len() - param_num;
+            return - (param_num as i64) * 8 ;
+        }
+        panic!("Variable not found: {}", var_name);
     }
 
     fn generate_assign_statement(&mut self, assign_statement: &Assign, p_env: &ProgEnv, f_env: &FuncEnv) {
