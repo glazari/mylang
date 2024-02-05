@@ -29,8 +29,8 @@ main:
 	push rax
 	sub rsp, 8
 	call add
+	mov rax, [rsp]
 	add rsp, 24
-	mov rax, [rsp - 8]
 	pop rbx
 	add rax, rbx
 	mov [rbp - 8], rax
@@ -44,9 +44,9 @@ add:
 	mov rbp, rsp
 	sub rsp, 0
 	; body
-	mov rax, [rbp - 0]
+	mov rax, [rbp - -32]
 	push rax
-	mov rax, [rbp - -8]
+	mov rax, [rbp - -24]
 	pop rbx
 	add rax, rbx
 	mov [rbp + 16], rax

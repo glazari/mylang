@@ -99,8 +99,9 @@ _start:
         }
         let param_num = f_env.function_params.iter().position(|x| *x == var_name);
         if let Some(param_num) = param_num {
-            let num_rev = f_env.function_params.len() - param_num;
-            return - (param_num as i64) * 8 ;
+            let num_rev = f_env.function_params.len() - param_num - 1;
+            let const_offset = 24; // rbp, return address, return value
+            return - ((num_rev as i64) * 8 + const_offset);
         }
         panic!("Variable not found: {}", var_name);
     }
@@ -209,10 +210,11 @@ _start:
         // save space for return value
         self.assembly.push_str("\tsub rsp, 8\n");
         self.assembly.push_str(format!("\tcall {}\n", call.name).as_str());
-        let stack_offset = call.args.len() * 8 + 8;
-        self.assembly.push_str(format!("\tadd rsp, {}\n", stack_offset).as_str());
         // move return value to rax
-        self.assembly.push_str("\tmov rax, [rsp - 8]\n");
+        self.assembly.push_str("\tmov rax, [rsp]\n");
+        let stack_offset = call.args.len() * 8 + 8;
+        // remove arguments from stack
+        self.assembly.push_str(format!("\tadd rsp, {}\n", stack_offset).as_str());
     }
 
     fn generate_term(&mut self, term: &Term, _p_env: &ProgEnv, f_env: &FuncEnv) {
