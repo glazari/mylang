@@ -127,12 +127,12 @@ pub fn tokenize(input: &str) -> Vec<Token>{
                 let ident = tokenize_ident(&mut chars, &mut fi);
                 tokens.push(Token::new(ident, fi.len_diff(&start)));
             },
-            '(' | ')' | '{' | '}' | '[' | ']' | ',' | ';' | '=' | '+' | '-' | '*' | '/' | '%' | '<' | '>' => {
+            '(' | ')' | '{' | '}' | '[' | ']' | ',' | ';' | '=' | '+' | '-' | '*' | '/' | '%' | '<' | '>' | '!' => {
                 let start = fi.clone();
                 let simbol = tokenize_simbol(&mut chars, &mut fi);
                 tokens.push(Token::new(simbol, fi.len_diff(&start)));
             },
-            _ => {},
+            _ => panic!("Unknown character: {}", c)
         }
         
     }
@@ -161,6 +161,15 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
                 TokenType::Eq
             } else {
                 TokenType::Assign
+            }
+        },
+        '!' => {
+            if let Some('=') = chars.peek() {
+                chars.next();
+                fi.col_inc();
+                TokenType::NotEq
+            } else {
+                TokenType::Illegal
             }
         },
         '+' => TokenType::Plus,
@@ -263,7 +272,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_tokenize_neq() {
         let input = "x != y";
         let expected = vec![

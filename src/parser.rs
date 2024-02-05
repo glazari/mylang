@@ -206,47 +206,21 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
             break;
         }
         match t.token_type {
-            TT::Plus => {
-                ti.next();
+            TT::Plus | TT::Minus | TT::Asterisk | TT::Slash | TT::Eq | TT::NotEq | TT::Lt | TT::Gt => {
+                let t = ti.next().unwrap();
                 skip_whitespace(ti);
                 let right_exp = parse_expression(ti, next_prec)?;
-                exp = Exp::Add(Box::new(exp), Box::new(right_exp));
-            }
-            TT::Minus => {
-                ti.next();
-                skip_whitespace(ti);
-                let right_exp = parse_expression(ti, next_prec)?;
-                exp = Exp::Sub(Box::new(exp), Box::new(right_exp));
-            }
-            TT::Asterisk => {
-                ti.next();
-                skip_whitespace(ti);
-                let right_exp = parse_expression(ti, next_prec)?;
-                exp = Exp::Mul(Box::new(exp), Box::new(right_exp));
-            }
-            TT::Slash => {
-                ti.next();
-                skip_whitespace(ti);
-                let right_exp = parse_expression(ti, next_prec)?;
-                exp = Exp::Div(Box::new(exp), Box::new(right_exp));
-            }
-            TT::Eq => {
-                ti.next();
-                skip_whitespace(ti);
-                let right_exp = parse_expression(ti, next_prec)?;
-                exp = Exp::Eq(Box::new(exp), Box::new(right_exp));
-            }
-            TT::Lt => {
-                ti.next();
-                skip_whitespace(ti);
-                let right_exp = parse_expression(ti, next_prec)?;
-                exp = Exp::LT(Box::new(exp), Box::new(right_exp));
-            }
-            TT::Gt => {
-                ti.next();
-                skip_whitespace(ti);
-                let right_exp = parse_expression(ti, next_prec)?;
-                exp = Exp::GT(Box::new(exp), Box::new(right_exp));
+                exp = match t.token_type {
+                    TT::Plus => Exp::add(exp, right_exp),
+                    TT::Minus => Exp::sub(exp, right_exp),
+                    TT::Asterisk => Exp::mul(exp, right_exp),
+                    TT::Slash => Exp::div(exp, right_exp),
+                    TT::Eq => Exp::Eq(Box::new(exp), Box::new(right_exp)),
+                    TT::NotEq => Exp::Ne(Box::new(exp), Box::new(right_exp)),
+                    TT::Lt => Exp::LT(Box::new(exp), Box::new(right_exp)),
+                    TT::Gt => Exp::GT(Box::new(exp), Box::new(right_exp)),
+                    _ => unreachable!(),
+                };
             }
             TT::Semicolon | TT::EOF => break,
             TT::Comma | TT::RParen => break, // expressions can appear as arguments to function calls
@@ -472,13 +446,13 @@ mod test {
                     add(int(4), mul(int(5), int(6))),
                 ),
             },
-            //Test {
-            //    input: "42 + 1 * 2 / 3 != 4 + 5 * 6",
-            //    expected: ne(
-            //        add(int(42), div(mul(int(1), int(2)), int(3))),
-            //        add(int(4), mul(int(5), int(6))),
-            //    ),
-            //},
+            Test {
+                input: "42 + 1 * 2 / 3 != 4 + 5 * 6",
+                expected: ne(
+                    add(int(42), div(mul(int(1), int(2)), int(3))),
+                    add(int(4), mul(int(5), int(6))),
+                ),
+            },
             Test {
                 input: "42 + 1 * 2 / 3 < 4 + 5 * 6",
                 expected: lt(
