@@ -96,18 +96,18 @@ impl CheckedProgram {
         match statement {
             Statement::If(if_statement) => {
                 // Top level of the condition must be a comparison
-                Self::check_comparison_expression(&if_statement.condition)?; 
+                Self::check_comparison_operator(&if_statement.condition)?; 
                 Self::check_expression(&if_statement.condition, f_env, p_env)?;
                 Self::check_statements(&if_statement.body, f_env, p_env)?;
                 Self::check_statements(&if_statement.else_body, f_env, p_env)?;
             }
             Statement::While(while_statement) => {
-                Self::check_comparison_expression(&while_statement.condition)?;
+                Self::check_comparison_operator(&while_statement.condition)?;
                 Self::check_expression(&while_statement.condition, f_env, p_env)?;
                 Self::check_statements(&while_statement.body, f_env, p_env)?;
             }
             Statement::DoWhile(do_while_statement) => {
-                Self::check_comparison_expression(&do_while_statement.condition)?;
+                Self::check_comparison_operator(&do_while_statement.condition)?;
                 Self::check_expression(&do_while_statement.condition, f_env, p_env)?;
                 Self::check_statements(&do_while_statement.body, f_env, p_env)?;
             }
@@ -127,11 +127,14 @@ impl CheckedProgram {
         Ok(())
     }
 
-    fn check_comparison_expression(expression: &Expression) -> Result<(), String> {
-        match expression {
-            Expression::Eq(_, _) | Expression::Ne(_, _) | Expression::LT(_, _) | Expression::GT(_, _) => Ok(()),
-            _ => Err(format!("Invalid comparison expression: {:?}", expression))
+    fn check_comparison_operator(op: &Expression) -> Result<(), String> {
+        if let Expression::BinOp(_, op, _) = op {
+            match op {
+                Operator::Eq | Operator::Ne | Operator::LT | Operator::GT => return Ok(()),
+                _ => return Err(format!("Invalid comparison expression: {:?}", op))
+            }
         }
+        Err(format!("Invalid comparison expression: {:?}", op))
     }
 
     fn check_statements(
@@ -163,14 +166,9 @@ impl CheckedProgram {
                     return Err(format!("Variable {} not found", variable));
                 }
             }
-            Expression::Add(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::Sub(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::Mul(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::Div(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::Eq(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::Ne(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::LT(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::GT(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
+            Expression::BinOp(e1, _op, e2) => {
+                Self::check_expressio_pair(e1, e2, f_env, p_env)?;
+            }
             Expression::Call(call) => {
                 if !p_env.function_names.contains(&call.name) {
                     return Err(format!("Function {} not found", call.name));

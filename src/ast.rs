@@ -78,15 +78,20 @@ pub struct Assign {
 pub enum Expression {
     Int(i64),
     Var(String),
-    Add(Box<Expression>, Box<Expression>),
-    Sub(Box<Expression>, Box<Expression>),
-    Mul(Box<Expression>, Box<Expression>),
-    Div(Box<Expression>, Box<Expression>),
-    Eq(Box<Expression>, Box<Expression>),
-    Ne(Box<Expression>, Box<Expression>),
-    LT(Box<Expression>, Box<Expression>),
-    GT(Box<Expression>, Box<Expression>),
+    BinOp(Box<Expression>, Operator, Box<Expression>),
     Call(Call),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Operator {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Eq,
+    Ne,
+    LT,
+    GT,
 }
 
 #[derive(Debug, PartialEq)]
@@ -99,28 +104,28 @@ pub struct Call {
 
 impl Exp {
     pub fn add(left: Exp, right: Exp) -> Exp {
-        Exp::Add(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::Add, Box::new(right))
     }
     pub fn sub(left: Exp, right: Exp) -> Exp {
-        Exp::Sub(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::Sub, Box::new(right))
     }
     pub fn mul(left: Exp, right: Exp) -> Exp {
-        Exp::Mul(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::Mul, Box::new(right))
     }
     pub fn div(left: Exp, right: Exp) -> Exp {
-        Exp::Div(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::Div, Box::new(right))
     }
     pub fn eq(left: Exp, right: Exp) -> Exp {
-        Exp::Eq(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::Eq, Box::new(right))
     }
     pub fn ne(left: Exp, right: Exp) -> Exp {
-        Exp::Ne(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::Ne, Box::new(right))
     }
     pub fn lt(left: Exp, right: Exp) -> Exp {
-        Exp::LT(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::LT, Box::new(right))
     }
     pub fn gt(left: Exp, right: Exp) -> Exp {
-        Exp::GT(Box::new(left), Box::new(right))
+        Exp::BinOp(Box::new(left), Operator::GT, Box::new(right))
     }
 }
 

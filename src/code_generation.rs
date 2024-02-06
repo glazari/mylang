@@ -123,37 +123,20 @@ _start:
 
         self.assembly.push_str(format!("{}:\n", if_condition_label).as_str());
         match &if_statement.condition {
-            Expression::LT(ref e1, ref e2) => {
+            Expression::BinOp(ref e1, op, ref e2) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.assembly.push_str("\tpush rax\n");
                 self.generate_expression(e2, p_env, f_env);
                 self.assembly.push_str("\tpop rbx\n");
                 self.assembly.push_str("\tcmp rbx, rax\n");
-                self.assembly.push_str(format!("\tjge {}\n", else_label).as_str());
-            }
-            Expression::GT(ref e1, ref e2) => {
-                self.generate_expression(e1, p_env, f_env);
-                self.assembly.push_str("\tpush rax\n");
-                self.generate_expression(e2, p_env, f_env);
-                self.assembly.push_str("\tpop rbx\n");
-                self.assembly.push_str("\tcmp rbx, rax\n");
-                self.assembly.push_str(format!("\tjle {}\n", else_label).as_str());
-            }
-            Expression::Ne(ref e1, ref e2) => {
-                self.generate_expression(e1, p_env, f_env);
-                self.assembly.push_str("\tpush rax\n");
-                self.generate_expression(e2, p_env, f_env);
-                self.assembly.push_str("\tpop rbx\n");
-                self.assembly.push_str("\tcmp rbx, rax\n");
-                self.assembly.push_str(format!("\tje {}\n", else_label).as_str());
-            }
-            Expression::Eq(ref e1, ref e2) => {
-                self.generate_expression(e1, p_env, f_env);
-                self.assembly.push_str("\tpush rax\n");
-                self.generate_expression(e2, p_env, f_env);
-                self.assembly.push_str("\tpop rbx\n");
-                self.assembly.push_str("\tcmp rbx, rax\n");
-                self.assembly.push_str(format!("\tjne {}\n", else_label).as_str());
+                let jmp = match op {
+                    Operator::LT => "jge",
+                    Operator::GT => "jle",
+                    Operator::Ne => "je",
+                    Operator::Eq => "jne",
+                    _ => { panic!("unimplemented"); }
+                };
+                self.assembly.push_str(format!("\t{} {}\n", jmp, else_label).as_str());
             }
             _ => { panic!("unimplemented"); }
         }
@@ -187,19 +170,19 @@ _start:
                 let var_address = Self::get_var_address(name, f_env);
                 self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_address).as_str());
             }
-            Expression::Add(e1, e2) => {
+            Expression::BinOp(e1, op, e2) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.assembly.push_str("\tpush rax\n");
                 self.generate_expression(e2, p_env, f_env);
                 self.assembly.push_str("\tpop rbx\n");
-                self.assembly.push_str("\tadd rax, rbx\n");
-            }
-            Expression::Sub(e1, e2) => {
-                self.generate_expression(e1, p_env, f_env);
-                self.assembly.push_str("\tpush rax\n");
-                self.generate_expression(e2, p_env, f_env);
-                self.assembly.push_str("\tpop rbx\n");
-                self.assembly.push_str("\tsub rax, rbx\n");
+                let op_str = match op {
+                    Operator::Add => "add",
+                    Operator::Sub => "sub",
+                    Operator::Mul => "imul",
+                    Operator::Div => "idiv",
+                    _ => { panic!("unimplemented"); }
+                };
+                self.assembly.push_str(format!("\t{} rax, rbx\n", op_str).as_str());
             }
             Expression::Call(call) => {
                 self.generate_call(call, p_env, f_env);

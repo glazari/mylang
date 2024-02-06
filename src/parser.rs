@@ -257,10 +257,10 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
                     TT::Minus => Exp::sub(exp, right_exp),
                     TT::Asterisk => Exp::mul(exp, right_exp),
                     TT::Slash => Exp::div(exp, right_exp),
-                    TT::Eq => Exp::Eq(Box::new(exp), Box::new(right_exp)),
-                    TT::NotEq => Exp::Ne(Box::new(exp), Box::new(right_exp)),
-                    TT::Lt => Exp::LT(Box::new(exp), Box::new(right_exp)),
-                    TT::Gt => Exp::GT(Box::new(exp), Box::new(right_exp)),
+                    TT::Eq => Exp::BinOp(Box::new(exp), Operator::Eq, Box::new(right_exp)),
+                    TT::NotEq => Exp::BinOp(Box::new(exp), Operator::Ne, Box::new(right_exp)),
+                    TT::Lt => Exp::BinOp(Box::new(exp), Operator::LT, Box::new(right_exp)),
+                    TT::Gt => Exp::BinOp(Box::new(exp), Operator::GT, Box::new(right_exp)),
                     _ => unreachable!(),
                 };
             }
