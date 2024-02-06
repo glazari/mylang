@@ -32,6 +32,7 @@ The user still needs to know the assembly for the cmp and the jump type (jne, jg
 - Add if else statements
 	- conditional is an expression whose top level is a comparison	
 - Add while loops
+- Add division, multiplication and modulo
 
 
 # Minimal language

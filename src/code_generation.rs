@@ -45,30 +45,36 @@ _start:
         // TODO: initialized data section (global variables)
     }
 
+    fn add_asm(&mut self, s: &str) {
+        self.assembly.push_str(&format!("\t{}\n", s));
+    }
+    fn add_label(&mut self, s: &str) {
+        self.assembly.push_str(&format!("{}:\n", s));
+    }
+
     fn generate_function(&mut self, function: &Function, prog_env: &ProgEnv, func_env: &FuncEnv) {
-        self.assembly.push_str(&format!("{}:\n", function.name));
-        self.assembly.push_str("\t; prologue\n");
-        self.assembly.push_str("\tpush rbp\n");
-        self.assembly.push_str("\tmov rbp, rsp\n");
+        self.add_label(&function.name);
+        self.add_asm("; prologue");
+        self.add_asm("push rbp");
+        self.add_asm("mov rbp, rsp");
         // update stack pointer for local variables
         let bytes_local_variables = func_env.local_variables.len() * 8;
-        self.assembly.push_str(format!("\tsub rsp, {}\n", bytes_local_variables).as_str());
+        self.add_asm(&format!("sub rsp, {}", bytes_local_variables));
 
-        // TODO: generate code for function body
-        self.assembly.push_str("\t; body\n");
+        self.add_asm("; body");
         for statement in &function.body {
             self.generate_statement(statement, prog_env, func_env);
         }
         
-        self.assembly.push_str("\t; epilogue\n");
+        self.add_asm("; epilogue");
         self.generate_function_epilogue(func_env);
     }
 
     fn generate_function_epilogue(&mut self, func_env: &FuncEnv) {
         let bytes_local_variables = func_env.local_variables.len() * 8;
-        self.assembly.push_str(format!("\tadd rsp, {}\n", bytes_local_variables).as_str());
-        self.assembly.push_str("\tpop rbp\n");
-        self.assembly.push_str("\tret\n");
+        self.add_asm(&format!("add rsp, {}", bytes_local_variables));
+        self.add_asm("pop rbp");
+        self.add_asm("ret");
     }
 
     fn generate_statement(&mut self, stmt: &Stmt, p_env: &ProgEnv, f_env: &FuncEnv) {
@@ -84,7 +90,7 @@ _start:
             }
             Stmt::Return(return_statement) => {
                 self.generate_expression(&return_statement.value, p_env, f_env);
-                self.assembly.push_str("\tmov [rbp + 16], rax\n");
+                self.add_asm("mov [rbp + 16], rax");
                 self.generate_function_epilogue(f_env);
             }
             stmt => { panic!("{}", format!("generate_statement: unimplemented {:?}", stmt)); }
@@ -109,7 +115,7 @@ _start:
     fn generate_assign_statement(&mut self, assign_statement: &Assign, p_env: &ProgEnv, f_env: &FuncEnv) {
         self.generate_expression(&assign_statement.value, p_env, f_env);
         let var_address = Self::get_var_address(&assign_statement.name, f_env);
-        self.assembly.push_str(format!("\tmov [rbp - {}], rax\n", var_address).as_str());
+        self.add_asm(&format!("mov [rbp - {}], rax", var_address));
     }
 
     fn generate_if_statement(&mut self, if_statement: &If, p_env: &ProgEnv, f_env: &FuncEnv) {
@@ -121,14 +127,14 @@ _start:
         let else_label = format!("else_{}", label_count);
         let end_label = format!("end_{}", label_count);
 
-        self.assembly.push_str(format!("{}:\n", if_condition_label).as_str());
+        self.add_label(&if_condition_label);
         match &if_statement.condition {
             Exp::BinOp(ref e1, op, ref e2) => {
                 self.generate_expression(e1, p_env, f_env);
-                self.assembly.push_str("\tpush rax\n");
+                self.add_asm("push rax");
                 self.generate_expression(e2, p_env, f_env);
-                self.assembly.push_str("\tpop rbx\n");
-                self.assembly.push_str("\tcmp rbx, rax\n");
+                self.add_asm("pop rbx");
+                self.add_asm("cmp rbx, rax");
                 let jmp = match op {
                     Op::LT => "jge",
                     Op::GT => "jle",
@@ -136,45 +142,45 @@ _start:
                     Op::Eq => "jne",
                     _ => { panic!("unimplemented"); }
                 };
-                self.assembly.push_str(format!("\t{} {}\n", jmp, else_label).as_str());
+                self.add_asm(&format!("{} {}", jmp, else_label));
             }
             _ => { panic!("unimplemented"); }
         }
-        self.assembly.push_str(format!("{}:\n", if_body_label).as_str());
+        self.add_label(&if_body_label);
         for stmt in &if_statement.body {
             self.generate_statement(stmt, p_env, f_env);
         }
 
-        self.assembly.push_str(format!("\tjmp {}\n", end_label).as_str());
-        self.assembly.push_str(format!("{}:\n", else_label).as_str());
+        self.add_asm(&format!("jmp {}", end_label));
+        self.add_label(&else_label);
 
         for statement in &if_statement.else_body {
             self.generate_statement(statement, p_env, f_env);
         }
 
-        self.assembly.push_str(format!("{}:\n", end_label).as_str());
+        self.add_label(&end_label);
     }
 
     fn generate_let_statement(&mut self, let_stmt: &Let, p_env: &ProgEnv, f_env: &FuncEnv) {
         self.generate_expression(&let_stmt.value, p_env, f_env);
         let var_address = Self::get_var_address(&let_stmt.name, f_env);
-        self.assembly.push_str(format!("\tmov [rbp - {}], rax\n", var_address).as_str());
+        self.add_asm(&format!("mov [rbp - {}], rax", var_address));
     }
 
     fn generate_expression(&mut self, exp: &Exp, p_env: &ProgEnv, f_env: &FuncEnv) {
         match exp {
             Exp::Int(number) => {
-                self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
+                self.add_asm(&format!("mov rax, {}", number));
             }
             Exp::Var(name) => {
                 let var_address = Self::get_var_address(name, f_env);
-                self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_address).as_str());
+                self.add_asm(&format!("mov rax, [rbp - {}]", var_address));
             }
             Exp::BinOp(e1, op, e2) => {
                 self.generate_expression(e1, p_env, f_env);
-                self.assembly.push_str("\tpush rax\n");
+                self.add_asm("push rax");
                 self.generate_expression(e2, p_env, f_env);
-                self.assembly.push_str("\tpop rbx\n");
+                self.add_asm("pop rbx");
                 let op_str = match op {
                     Operator::Add => "add",
                     Operator::Sub => "sub",
@@ -182,7 +188,7 @@ _start:
                     Operator::Div => "idiv",
                     _ => { panic!("unimplemented"); }
                 };
-                self.assembly.push_str(format!("\t{} rax, rbx\n", op_str).as_str());
+                self.add_asm(&format!("{} rax, rbx", op_str));
             }
             Exp::Call(call) => {
                 self.generate_call(call, p_env, f_env);
@@ -193,16 +199,16 @@ _start:
     fn generate_call(&mut self, call: &Call, p_env: &ProgEnv, f_env: &FuncEnv) {
         for arg in &call.args {
             self.generate_expression(arg, p_env, f_env);
-            self.assembly.push_str("\tpush rax\n");
+            self.add_asm("push rax");
         }
         // save space for return value
-        self.assembly.push_str("\tsub rsp, 8\n");
-        self.assembly.push_str(format!("\tcall {}\n", call.name).as_str());
+        self.add_asm("sub rsp, 8");
+        self.add_asm(&format!("call {}", call.name));
         // move return value to rax
-        self.assembly.push_str("\tmov rax, [rsp]\n");
+        self.add_asm("mov rax, [rsp]");
         let stack_offset = call.args.len() * 8 + 8;
         // remove arguments from stack
-        self.assembly.push_str(format!("\tadd rsp, {}\n", stack_offset).as_str());
+        self.add_asm(&format!("add rsp, {}", stack_offset));
     }
 }
 
