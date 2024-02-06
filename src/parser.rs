@@ -50,10 +50,7 @@ pub fn parse_program(tokens: Vec<Token>) -> Result<Program, ParseError> {
 }
 
 fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
-    let t = ti.next().ok_or(error_eof("fn"))?;
-    if t.token_type != TT::Keyword(KW::Fn) {
-        return error("fn", t);
-    }
+    expect(ti, TT::Keyword(KW::Fn), "fn")?;
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("function name"))?;
@@ -72,10 +69,7 @@ fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
 
 fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
     let mut statements = Vec::new();
-    let t = ti.next().ok_or(error_eof("{"))?;
-    if t.token_type != TT::LBrace {
-        return error("{", t);
-    }
+    expect(ti, TT::LBrace, "{")?;
 
     loop {
         skip_whitespace(ti);
@@ -103,34 +97,22 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
 
     }
 
-    let t = ti.next().ok_or(error_eof("}"))?;
-    if t.token_type != TT::RBrace {
-        return error("}", t);
-    }
+    expect(ti, TT::RBrace, "}")?;
 
     Ok(statements)
 }
 
 fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
-    let t = ti.next().ok_or(error_eof("if"))?;
-    if t.token_type != TT::Keyword(KW::If) {
-        return error("if", t);
-    }
+    expect(ti, TT::Keyword(KW::If), "if")?;
 
     skip_whitespace(ti);
-    let t = ti.next().ok_or(error_eof("("))?;
-    if t.token_type != TT::LParen {
-        return error("(", t);
-    }
+    expect(ti, TT::LParen, "(")?;
 
     skip_whitespace(ti);
     let condition = parse_expression(ti, Precedence::Lowest)?;
 
     skip_whitespace(ti);
-    let t = ti.next().ok_or(error_eof(")"))?;
-    if t.token_type != TT::RParen {
-        return error(")", t);
-    }
+    expect(ti, TT::RParen, ")")?;
 
     skip_whitespace(ti);
     let body = parse_block(ti)?;
@@ -150,19 +132,13 @@ fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
 }
 
 fn parse_return(ti: &mut TI<'_>) -> Result<Return, ParseError> {
-    let t = ti.next().ok_or(error_eof("return"))?;
-    if t.token_type != TT::Keyword(KW::Return) {
-        return error("return", t);
-    }
+    expect(ti, TT::Keyword(KW::Return), "return")?;
 
     skip_whitespace(ti);
     let value = parse_expression(ti, Precedence::Lowest)?;
 
     skip_whitespace(ti);
-    let t = ti.next().ok_or(error_eof(";"))?;
-    if t.token_type != TT::Semicolon {
-        return error(";", t);
-    }
+    expect(ti, TT::Semicolon, ";")?;
 
     Ok(Return { value })
 }
@@ -182,10 +158,7 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
             skip_whitespace(ti);
             let value = parse_expression(ti, Precedence::Lowest)?;
             skip_whitespace(ti);
-            let t = ti.next().ok_or(error_eof(";"))?;
-            if t.token_type != TT::Semicolon {
-                return error(";", t);
-            }
+            expect(ti, TT::Semicolon, ";")?;
             Ok(Statement::Assign(Assign {
                 name,
                 value,
@@ -200,10 +173,8 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
 
 
 fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
+    expect(ti, TT::Keyword(KW::Let), "let")?;
     let t = ti.next().ok_or(error_eof("let"))?;
-    if t.token_type != TT::Keyword(KW::Let) {
-        return error("let", t);
-    }
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("identifier"))?;
@@ -213,24 +184,15 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     };
 
     skip_whitespace(ti);
-    let t = ti.next().ok_or(error_eof("="))?;
-    if t.token_type != TT::Assign {
-        return error("=", t);
-    }
+    expect(ti, TT::Assign, "=")?;
 
     skip_whitespace(ti);
     let value = parse_expression(ti, Precedence::Lowest)?;
 
     skip_whitespace(ti);
-    let t = ti.next().ok_or(error_eof(";"))?;
-    if t.token_type != TT::Semicolon {
-        return error(";", t);
-    }
+    expect(ti, TT::Semicolon, ";")?;
 
-    Ok(Let {
-        name,
-        value,
-    })
+    Ok(Let { name, value })
 }
 
 fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError> {
@@ -289,10 +251,7 @@ fn parse_ident_start_expression(ti: &mut TI<'_>, name: String) -> Result<Exp, Pa
 
 fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
     let mut args = Vec::new();
-    let t = ti.next().ok_or(error_eof("("))?;
-    if t.token_type != TT::LParen {
-        return error("(", t);
-    }
+    expect(ti, TT::LParen, "(")?;
 
     loop {
         skip_whitespace(ti);
@@ -321,10 +280,7 @@ fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
 fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     let mut params = Vec::new();
     // starts with (
-    let t = ti.next().ok_or(error_eof("("))?;
-    if t.token_type != TT::LParen {
-        return error("(", t);
-    }
+    expect(ti, TT::LParen, "(")?;
 
     loop {
         skip_whitespace(ti);
@@ -345,6 +301,14 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     }
 
     Ok(params)
+}
+
+fn expect(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<(), ParseError> {
+    let t = ti.next().ok_or(error_eof(msg))?;
+    if t.token_type != expected {
+        return error(msg, t);
+    }
+    Ok(())
 }
 
 fn skip_whitespace(ti: &mut TI<'_>) {
