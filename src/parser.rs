@@ -77,15 +77,15 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
         match t.token_type {
             TT::Keyword(KW::Let) => {
                 let let_statement = parse_let(ti)?;
-                statements.push(Statement::Let(let_statement));
+                statements.push(Stmt::Let(let_statement));
             }
             TT::Keyword(KW::Return) => {
                 let return_statement = parse_return(ti)?;
-                statements.push(Statement::Return(return_statement));
+                statements.push(Stmt::Return(return_statement));
             }
             TT::Keyword(KW::If) => {
                 let if_statement = parse_if(ti)?;
-                statements.push(Statement::If(if_statement));
+                statements.push(Stmt::If(if_statement));
             }
             TT::Ident(_) => {
                 let stmt = parse_ident_start_statement(ti)?;
@@ -159,7 +159,7 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
             let value = parse_expression(ti, Precedence::Lowest)?;
             skip_whitespace(ti);
             expect(ti, TT::Semicolon, ";")?;
-            Ok(Statement::Assign(Assign {
+            Ok(Stmt::Assign(Assign {
                 name,
                 value,
             }))
@@ -174,7 +174,6 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
 
 fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     expect(ti, TT::Keyword(KW::Let), "let")?;
-    let t = ti.next().ok_or(error_eof("let"))?;
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("identifier"))?;
@@ -214,17 +213,19 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
                 let t = ti.next().unwrap();
                 skip_whitespace(ti);
                 let right_exp = parse_expression(ti, next_prec)?;
-                exp = match t.token_type {
-                    TT::Plus => Exp::add(exp, right_exp),
-                    TT::Minus => Exp::sub(exp, right_exp),
-                    TT::Asterisk => Exp::mul(exp, right_exp),
-                    TT::Slash => Exp::div(exp, right_exp),
-                    TT::Eq => Exp::BinOp(Box::new(exp), Operator::Eq, Box::new(right_exp)),
-                    TT::NotEq => Exp::BinOp(Box::new(exp), Operator::Ne, Box::new(right_exp)),
-                    TT::Lt => Exp::BinOp(Box::new(exp), Operator::LT, Box::new(right_exp)),
-                    TT::Gt => Exp::BinOp(Box::new(exp), Operator::GT, Box::new(right_exp)),
+                let op = match t.token_type {
+                    TT::Plus => Op::Add, 
+                    TT::Minus => Op::Sub, 
+                    TT::Asterisk => Op::Mul, 
+                    TT::Slash => Op::Div, 
+                    TT::Eq => Op::Eq,
+                    TT::NotEq => Op::Ne,
+                    TT::Lt => Op::LT,
+                    TT::Gt => Op::GT,
                     _ => unreachable!(),
                 };
+                exp = Exp::BinOp(Box::new(exp), op, Box::new(right_exp));
+                
             }
             TT::Semicolon | TT::EOF => break,
             TT::Comma | TT::RParen => break, // expressions can appear as arguments to function calls
@@ -383,7 +384,7 @@ mod test {
             functions: vec![Function {
                 name: "main".to_string(),
                 params: Vec::new(),
-                body: vec![Statement::Let(Let {
+                body: vec![Stmt::Let(Let {
                     name: "x".to_string(),
                     value: Exp::add(Expression::Int(42), Expression::Int(1)),
                 })],

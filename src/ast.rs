@@ -2,6 +2,7 @@
 // Some type aliases that are used to make the code more concise
 pub type Stmt = Statement;
 pub type Exp = Expression;
+pub type Op = Operator;
 
 #[derive(Debug, PartialEq)]
 pub struct Program {

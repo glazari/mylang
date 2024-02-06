@@ -42,11 +42,7 @@ impl CheckedProgram {
             function_envs.push(function_env);
         }
 
-        Ok(CheckedProgram {
-            prog,
-            program_env,
-            function_envs,
-        })
+        Ok(CheckedProgram { prog, program_env, function_envs})
     }
 
     fn check_function(function: &Function, prog_env: &ProgEnv) -> Result<FuncEnv, String> {
@@ -65,14 +61,14 @@ impl CheckedProgram {
 
         for statement in &function.body {
             match statement {
-                Statement::Let(let_statement) => {
-                    if local_variables.contains(&let_statement.name) {
+                Stmt::Let(let_stmt) => {
+                    if local_variables.contains(&let_stmt.name) {
                         return Err(format!(
                             "Duplicate variable name {} in function {}",
-                            let_statement.name, function.name
+                            let_stmt.name, function.name
                         ));
                     }
-                    local_variables.push(let_statement.name.clone());
+                    local_variables.push(let_stmt.name.clone());
                 }
                 _ => {}
             }
@@ -88,88 +84,77 @@ impl CheckedProgram {
         Ok(function_env)
     }
 
-    fn check_statement(
-        statement: &Statement,
-        f_env: &FuncEnv,
-        p_env: &ProgEnv,
-    ) -> Result<(), String> {
-        match statement {
-            Statement::If(if_statement) => {
+    fn check_statement(stmt: &Stmt, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+        match stmt {
+            Stmt::If(if_stmt) => {
                 // Top level of the condition must be a comparison
-                Self::check_comparison_operator(&if_statement.condition)?; 
-                Self::check_expression(&if_statement.condition, f_env, p_env)?;
-                Self::check_statements(&if_statement.body, f_env, p_env)?;
-                Self::check_statements(&if_statement.else_body, f_env, p_env)?;
+                Self::check_comparison_operator(&if_stmt.condition)?;
+                Self::check_expression(&if_stmt.condition, f_env, p_env)?;
+                Self::check_statements(&if_stmt.body, f_env, p_env)?;
+                Self::check_statements(&if_stmt.else_body, f_env, p_env)?;
             }
-            Statement::While(while_statement) => {
-                Self::check_comparison_operator(&while_statement.condition)?;
-                Self::check_expression(&while_statement.condition, f_env, p_env)?;
-                Self::check_statements(&while_statement.body, f_env, p_env)?;
+            Stmt::While(while_stmt) => {
+                Self::check_comparison_operator(&while_stmt.condition)?;
+                Self::check_expression(&while_stmt.condition, f_env, p_env)?;
+                Self::check_statements(&while_stmt.body, f_env, p_env)?;
             }
-            Statement::DoWhile(do_while_statement) => {
-                Self::check_comparison_operator(&do_while_statement.condition)?;
-                Self::check_expression(&do_while_statement.condition, f_env, p_env)?;
-                Self::check_statements(&do_while_statement.body, f_env, p_env)?;
+            Stmt::DoWhile(do_while_stmt) => {
+                Self::check_comparison_operator(&do_while_stmt.condition)?;
+                Self::check_expression(&do_while_stmt.condition, f_env, p_env)?;
+                Self::check_statements(&do_while_stmt.body, f_env, p_env)?;
             }
-            Statement::Let(let_statement) => {
-                Self::check_expression(&let_statement.value, f_env, p_env)?;
+            Stmt::Let(let_stmt) => {
+                Self::check_expression(&let_stmt.value, f_env, p_env)?;
             }
-            Statement::Asm(_) => {
+            Stmt::Asm(_) => {
                 // No checks, programer is responsible for writing correct assembly
             }
-            Statement::Return(return_statement) => {
-                Self::check_expression(&return_statement.value, f_env, p_env)?;
+            Stmt::Return(return_stmt) => {
+                Self::check_expression(&return_stmt.value, f_env, p_env)?;
             }
-            Statement::Assign(assign_statement) => {
-                Self::check_expression(&assign_statement.value, f_env, p_env)?;
+            Stmt::Assign(assign_stmt) => {
+                Self::check_expression(&assign_stmt.value, f_env, p_env)?;
             }
         }
         Ok(())
     }
 
-    fn check_comparison_operator(op: &Expression) -> Result<(), String> {
-        if let Expression::BinOp(_, op, _) = op {
+    fn check_comparison_operator(op: &Exp) -> Result<(), String> {
+        if let Exp::BinOp(_, op, _) = op {
             match op {
-                Operator::Eq | Operator::Ne | Operator::LT | Operator::GT => return Ok(()),
-                _ => return Err(format!("Invalid comparison expression: {:?}", op))
+                Op::Eq | Op::Ne | Op::LT | Op::GT => return Ok(()),
+                _ => return Err(format!("Invalid comparison expression: {:?}", op)),
             }
         }
         Err(format!("Invalid comparison expression: {:?}", op))
     }
 
-    fn check_statements(
-        statements: &Vec<Statement>,
-        f_env: &FuncEnv,
-        p_env: &ProgEnv,
-    ) -> Result<(), String> {
-        for statement in statements {
+    fn check_statements(stmts: &Vec<Stmt>, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+        for statement in stmts {
             Self::check_statement(statement, f_env, p_env)?;
         }
         Ok(())
     }
 
-    fn check_expression(
-        expression: &Expression,
-        f_env: &FuncEnv,
-        p_env: &ProgEnv,
-    ) -> Result<(), String> {
+    fn check_expression(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
         // chect:
         // 1. all variables are defined
         // 2. all function calls are defined and have the correct number of arguments
         // 3. In the future check the types of the expression
-        match expression {
-            Expression::Int(_) => { /* No checks needed, until we add type checking */ }
-            Expression::Var(variable) => {
+        match exp {
+            Exp::Int(_) => { /* No checks needed, until we add type checking */ }
+            Exp::Var(variable) => {
                 if !f_env.function_params.contains(&variable)
                     && !f_env.local_variables.contains(&variable)
                 {
                     return Err(format!("Variable {} not found", variable));
                 }
             }
-            Expression::BinOp(e1, _op, e2) => {
-                Self::check_expressio_pair(e1, e2, f_env, p_env)?;
+            Exp::BinOp(e1, _op, e2) => {
+                Self::check_expression(&e1, f_env, p_env)?;
+                Self::check_expression(&e2, f_env, p_env)?;
             }
-            Expression::Call(call) => {
+            Exp::Call(call) => {
                 if !p_env.function_names.contains(&call.name) {
                     return Err(format!("Function {} not found", call.name));
                 }
@@ -189,17 +174,6 @@ impl CheckedProgram {
                 }
             }
         }
-        Ok(())
-    }
-
-    fn check_expressio_pair(
-        e1: &Expression,
-        e2: &Expression,
-        f_env: &FuncEnv,
-        p_env: &ProgEnv,
-    ) -> Result<(), String> {
-        Self::check_expression(&e1, f_env, p_env)?;
-        Self::check_expression(&e2, f_env, p_env)?;
         Ok(())
     }
 }

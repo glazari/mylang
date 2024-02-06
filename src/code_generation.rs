@@ -71,18 +71,18 @@ _start:
         self.assembly.push_str("\tret\n");
     }
 
-    fn generate_statement(&mut self, statement: &Statement, p_env: &ProgEnv, f_env: &FuncEnv) {
-        match statement {
-            Statement::Let(let_statement) => {
+    fn generate_statement(&mut self, stmt: &Stmt, p_env: &ProgEnv, f_env: &FuncEnv) {
+        match stmt {
+            Stmt::Let(let_statement) => {
                 self.generate_let_statement(let_statement, p_env, f_env);
             }
-            Statement::If(if_statement) => {
+            Stmt::If(if_statement) => {
                self.generate_if_statement(if_statement, p_env, f_env); 
             }
-            Statement::Assign(assign_statement) => {
+            Stmt::Assign(assign_statement) => {
                 self.generate_assign_statement(assign_statement, p_env, f_env);
             }
-            Statement::Return(return_statement) => {
+            Stmt::Return(return_statement) => {
                 self.generate_expression(&return_statement.value, p_env, f_env);
                 self.assembly.push_str("\tmov [rbp + 16], rax\n");
                 self.generate_function_epilogue(f_env);
@@ -123,17 +123,17 @@ _start:
 
         self.assembly.push_str(format!("{}:\n", if_condition_label).as_str());
         match &if_statement.condition {
-            Expression::BinOp(ref e1, op, ref e2) => {
+            Exp::BinOp(ref e1, op, ref e2) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.assembly.push_str("\tpush rax\n");
                 self.generate_expression(e2, p_env, f_env);
                 self.assembly.push_str("\tpop rbx\n");
                 self.assembly.push_str("\tcmp rbx, rax\n");
                 let jmp = match op {
-                    Operator::LT => "jge",
-                    Operator::GT => "jle",
-                    Operator::Ne => "je",
-                    Operator::Eq => "jne",
+                    Op::LT => "jge",
+                    Op::GT => "jle",
+                    Op::Ne => "je",
+                    Op::Eq => "jne",
                     _ => { panic!("unimplemented"); }
                 };
                 self.assembly.push_str(format!("\t{} {}\n", jmp, else_label).as_str());
@@ -141,8 +141,8 @@ _start:
             _ => { panic!("unimplemented"); }
         }
         self.assembly.push_str(format!("{}:\n", if_body_label).as_str());
-        for statement in &if_statement.body {
-            self.generate_statement(statement, p_env, f_env);
+        for stmt in &if_statement.body {
+            self.generate_statement(stmt, p_env, f_env);
         }
 
         self.assembly.push_str(format!("\tjmp {}\n", end_label).as_str());
@@ -155,22 +155,22 @@ _start:
         self.assembly.push_str(format!("{}:\n", end_label).as_str());
     }
 
-    fn generate_let_statement(&mut self, let_statement: &Let, p_env: &ProgEnv, f_env: &FuncEnv) {
-        self.generate_expression(&let_statement.value, p_env, f_env);
-        let var_address = Self::get_var_address(&let_statement.name, f_env);
+    fn generate_let_statement(&mut self, let_stmt: &Let, p_env: &ProgEnv, f_env: &FuncEnv) {
+        self.generate_expression(&let_stmt.value, p_env, f_env);
+        let var_address = Self::get_var_address(&let_stmt.name, f_env);
         self.assembly.push_str(format!("\tmov [rbp - {}], rax\n", var_address).as_str());
     }
 
-    fn generate_expression(&mut self, expression: &Expression, p_env: &ProgEnv, f_env: &FuncEnv) {
-        match expression {
-            Expression::Int(number) => {
+    fn generate_expression(&mut self, exp: &Exp, p_env: &ProgEnv, f_env: &FuncEnv) {
+        match exp {
+            Exp::Int(number) => {
                 self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
             }
-            Expression::Var(name) => {
+            Exp::Var(name) => {
                 let var_address = Self::get_var_address(name, f_env);
                 self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_address).as_str());
             }
-            Expression::BinOp(e1, op, e2) => {
+            Exp::BinOp(e1, op, e2) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.assembly.push_str("\tpush rax\n");
                 self.generate_expression(e2, p_env, f_env);
@@ -184,10 +184,9 @@ _start:
                 };
                 self.assembly.push_str(format!("\t{} rax, rbx\n", op_str).as_str());
             }
-            Expression::Call(call) => {
+            Exp::Call(call) => {
                 self.generate_call(call, p_env, f_env);
             }
-            expr => { panic!("{}", format!("generate_expression: unimplemented {:?}", expr)); }
         }
     }
 
