@@ -172,14 +172,6 @@ _start:
         self.assembly.push_str(format!("{}:\n", end_label).as_str());
     }
 
-    fn generate_compare_terms(&mut self, term1: &Term, term2: &Term, p_env: &ProgEnv, f_env: &FuncEnv) {
-        self.generate_term(term1, p_env, f_env);
-        self.assembly.push_str("\tpush rax\n");
-        self.generate_term(term2, p_env, f_env);
-        self.assembly.push_str("\tpop rbx\n");
-        self.assembly.push_str("\tcmp rbx, rax\n");
-    }
-
     fn generate_let_statement(&mut self, let_statement: &Let, p_env: &ProgEnv, f_env: &FuncEnv) {
         self.generate_expression(&let_statement.value, p_env, f_env);
         let var_address = Self::get_var_address(&let_statement.name, f_env);
@@ -212,9 +204,6 @@ _start:
             Expression::Call(call) => {
                 self.generate_call(call, p_env, f_env);
             }
-            Expression::Term(term) => {
-                self.generate_term(term, p_env, f_env);
-            }
             expr => { panic!("{}", format!("generate_expression: unimplemented {:?}", expr)); }
         }
     }
@@ -233,19 +222,6 @@ _start:
         // remove arguments from stack
         self.assembly.push_str(format!("\tadd rsp, {}\n", stack_offset).as_str());
     }
-
-    fn generate_term(&mut self, term: &Term, _p_env: &ProgEnv, f_env: &FuncEnv) {
-        match term {
-            Term::Number(number) => {
-                self.assembly.push_str(format!("\tmov rax, {}\n", number).as_str());
-            }
-            Term::Variable(name) => {
-                let var_address = Self::get_var_address(name, f_env);
-                self.assembly.push_str(format!("\tmov rax, [rbp - {}]\n", var_address).as_str());
-            }
-        }
-    }
-
 }
 
 pub fn compile(prog: Program, out_file: &str) -> Result<(), String> {

@@ -42,13 +42,13 @@ pub struct If {
 
 #[derive(Debug, PartialEq)]
 pub struct While {
-    pub condition: Conditional,
+    pub condition: Expression,
     pub body: Vec<Statement>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct DoWhile {
-    pub condition: Conditional,
+    pub condition: Expression,
     pub body: Vec<Statement>,
 }
 
@@ -75,14 +75,6 @@ pub struct Assign {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Conditional {
-    Eq(Term, Term),
-    NE(Term, Term),
-    LT(Term, Term),
-    GT(Term, Term),
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Expression {
     Int(i64),
     Var(String),
@@ -94,14 +86,7 @@ pub enum Expression {
     Ne(Box<Expression>, Box<Expression>),
     LT(Box<Expression>, Box<Expression>),
     GT(Box<Expression>, Box<Expression>),
-    Term(Term),
     Call(Call),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Term {
-    Number(i64),
-    Variable(String),
 }
 
 #[derive(Debug, PartialEq)]

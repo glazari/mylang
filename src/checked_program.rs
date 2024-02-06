@@ -96,20 +96,19 @@ impl CheckedProgram {
         match statement {
             Statement::If(if_statement) => {
                 // Top level of the condition must be a comparison
-                match if_statement.condition {
-                    Expression::Eq(_, _) | Expression::Ne(_, _) | Expression::LT(_, _) | Expression::GT(_, _) => {}
-                    _ => return Err("Invalid condition in if statement".to_string())
-                }
+                Self::check_comparison_expression(&if_statement.condition)?; 
                 Self::check_expression(&if_statement.condition, f_env, p_env)?;
                 Self::check_statements(&if_statement.body, f_env, p_env)?;
                 Self::check_statements(&if_statement.else_body, f_env, p_env)?;
             }
             Statement::While(while_statement) => {
-                Self::check_conditional(&while_statement.condition, f_env, p_env)?;
+                Self::check_comparison_expression(&while_statement.condition)?;
+                Self::check_expression(&while_statement.condition, f_env, p_env)?;
                 Self::check_statements(&while_statement.body, f_env, p_env)?;
             }
             Statement::DoWhile(do_while_statement) => {
-                Self::check_conditional(&do_while_statement.condition, f_env, p_env)?;
+                Self::check_comparison_expression(&do_while_statement.condition)?;
+                Self::check_expression(&do_while_statement.condition, f_env, p_env)?;
                 Self::check_statements(&do_while_statement.body, f_env, p_env)?;
             }
             Statement::Let(let_statement) => {
@@ -128,6 +127,13 @@ impl CheckedProgram {
         Ok(())
     }
 
+    fn check_comparison_expression(expression: &Expression) -> Result<(), String> {
+        match expression {
+            Expression::Eq(_, _) | Expression::Ne(_, _) | Expression::LT(_, _) | Expression::GT(_, _) => Ok(()),
+            _ => Err(format!("Invalid comparison expression: {:?}", expression))
+        }
+    }
+
     fn check_statements(
         statements: &Vec<Statement>,
         f_env: &FuncEnv,
@@ -135,34 +141,6 @@ impl CheckedProgram {
     ) -> Result<(), String> {
         for statement in statements {
             Self::check_statement(statement, f_env, p_env)?;
-        }
-        Ok(())
-    }
-
-    fn check_conditional(
-        conditional: &Conditional,
-        f_env: &FuncEnv,
-        p_env: &ProgEnv,
-    ) -> Result<(), String> {
-        match conditional {
-            Conditional::Eq(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
-            Conditional::NE(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
-            Conditional::LT(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
-            Conditional::GT(term1, term2) => Self::check_term_pair(term1, term2, f_env, p_env)?,
-        }
-        Ok(())
-    }
-
-    fn check_term(term: &Term, f_env: &FuncEnv, _p_env: &ProgEnv) -> Result<(), String> {
-        match term {
-            Term::Number(_) => {}
-            Term::Variable(variable) => {
-                if !f_env.function_params.contains(&variable)
-                    && !f_env.local_variables.contains(&variable)
-                {
-                    return Err(format!("Variable {} not found", variable));
-                }
-            }
         }
         Ok(())
     }
@@ -193,7 +171,6 @@ impl CheckedProgram {
             Expression::Ne(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
             Expression::LT(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
             Expression::GT(e1, e2) => Self::check_expressio_pair(e1, e2, f_env, p_env)?,
-            Expression::Term(term) => Self::check_term(term, f_env, p_env)?,
             Expression::Call(call) => {
                 if !p_env.function_names.contains(&call.name) {
                     return Err(format!("Function {} not found", call.name));
@@ -225,17 +202,6 @@ impl CheckedProgram {
     ) -> Result<(), String> {
         Self::check_expression(&e1, f_env, p_env)?;
         Self::check_expression(&e2, f_env, p_env)?;
-        Ok(())
-    }
-
-    fn check_term_pair(
-        term1: &Term,
-        term2: &Term,
-        f_env: &FuncEnv,
-        p_env: &ProgEnv,
-    ) -> Result<(), String> {
-        Self::check_term(term1, f_env, p_env)?;
-        Self::check_term(term2, f_env, p_env)?;
         Ok(())
     }
 }
