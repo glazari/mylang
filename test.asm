@@ -17,6 +17,21 @@ main:
 	; body
 	mov rax, 1
 	mov [rbp - 8], rax
+if_condition_0:
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 0
+	pop rbx
+	cmp rbx, rax
+	jle else_0
+if_body_0:
+	mov rax, 3
+	mov [rbp - 8], rax
+	jmp end_0
+else_0:
+	mov rax, 5
+	mov [rbp - 8], rax
+end_0:
 	mov rax, [rbp - 8]
 	push rax
 	mov rax, 2

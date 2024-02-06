@@ -122,23 +122,40 @@ _start:
         let end_label = format!("end_{}", label_count);
 
         self.assembly.push_str(format!("{}:\n", if_condition_label).as_str());
-        match if_statement.condition {
-            Conditional::LT(ref t1, ref t2) => {
-                self.generate_compare_terms(&t1, &t2, p_env, f_env);
+        match &if_statement.condition {
+            Expression::LT(ref e1, ref e2) => {
+                self.generate_expression(e1, p_env, f_env);
+                self.assembly.push_str("\tpush rax\n");
+                self.generate_expression(e2, p_env, f_env);
+                self.assembly.push_str("\tpop rbx\n");
+                self.assembly.push_str("\tcmp rbx, rax\n");
                 self.assembly.push_str(format!("\tjge {}\n", else_label).as_str());
             }
-            Conditional::GT(ref t1, ref t2) => {
-                self.generate_compare_terms(&t1, &t2, p_env, f_env);
+            Expression::GT(ref e1, ref e2) => {
+                self.generate_expression(e1, p_env, f_env);
+                self.assembly.push_str("\tpush rax\n");
+                self.generate_expression(e2, p_env, f_env);
+                self.assembly.push_str("\tpop rbx\n");
+                self.assembly.push_str("\tcmp rbx, rax\n");
                 self.assembly.push_str(format!("\tjle {}\n", else_label).as_str());
             }
-            Conditional::NE(ref t1, ref t2) => {
-                self.generate_compare_terms(&t1, &t2, p_env, f_env);
+            Expression::Ne(ref e1, ref e2) => {
+                self.generate_expression(e1, p_env, f_env);
+                self.assembly.push_str("\tpush rax\n");
+                self.generate_expression(e2, p_env, f_env);
+                self.assembly.push_str("\tpop rbx\n");
+                self.assembly.push_str("\tcmp rbx, rax\n");
                 self.assembly.push_str(format!("\tje {}\n", else_label).as_str());
             }
-            Conditional::Eq(ref t1, ref t2) => {
-                self.generate_compare_terms(&t1, &t2, p_env, f_env);
+            Expression::Eq(ref e1, ref e2) => {
+                self.generate_expression(e1, p_env, f_env);
+                self.assembly.push_str("\tpush rax\n");
+                self.generate_expression(e2, p_env, f_env);
+                self.assembly.push_str("\tpop rbx\n");
+                self.assembly.push_str("\tcmp rbx, rax\n");
                 self.assembly.push_str(format!("\tjne {}\n", else_label).as_str());
             }
+            _ => { panic!("unimplemented"); }
         }
         self.assembly.push_str(format!("{}:\n", if_body_label).as_str());
         for statement in &if_statement.body {

@@ -35,7 +35,7 @@ pub enum Statement {
 
 #[derive(Debug, PartialEq)]
 pub struct If {
-    pub condition: Conditional,
+    pub condition: Expression,
     pub body: Vec<Statement>,
     pub else_body: Vec<Statement>,
 }

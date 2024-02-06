@@ -95,7 +95,12 @@ impl CheckedProgram {
     ) -> Result<(), String> {
         match statement {
             Statement::If(if_statement) => {
-                Self::check_conditional(&if_statement.condition, f_env, p_env)?;
+                // Top level of the condition must be a comparison
+                match if_statement.condition {
+                    Expression::Eq(_, _) | Expression::Ne(_, _) | Expression::LT(_, _) | Expression::GT(_, _) => {}
+                    _ => return Err("Invalid condition in if statement".to_string())
+                }
+                Self::check_expression(&if_statement.condition, f_env, p_env)?;
                 Self::check_statements(&if_statement.body, f_env, p_env)?;
                 Self::check_statements(&if_statement.else_body, f_env, p_env)?;
             }

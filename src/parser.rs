@@ -89,6 +89,10 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
                 let return_statement = parse_return(ti)?;
                 statements.push(Statement::Return(return_statement));
             }
+            TT::Keyword(KW::If) => {
+                let if_statement = parse_if(ti)?;
+                statements.push(Statement::If(if_statement));
+            }
             TT::Ident(_) => {
                 let stmt = parse_ident_start_statement(ti)?;
                 statements.push(stmt);
@@ -105,6 +109,44 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
     }
 
     Ok(statements)
+}
+
+fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
+    let t = ti.next().ok_or(error_eof("if"))?;
+    if t.token_type != TT::Keyword(KW::If) {
+        return error("if", t);
+    }
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof("("))?;
+    if t.token_type != TT::LParen {
+        return error("(", t);
+    }
+
+    skip_whitespace(ti);
+    let condition = parse_expression(ti, Precedence::Lowest)?;
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof(")"))?;
+    if t.token_type != TT::RParen {
+        return error(")", t);
+    }
+
+    skip_whitespace(ti);
+    let body = parse_block(ti)?;
+
+    skip_whitespace(ti);
+    if let Some(t) = ti.peek() {
+        if t.token_type == TT::Keyword(KW::Else) {
+            ti.next();
+            skip_whitespace(ti);
+            let else_body = parse_block(ti)?;
+            return Ok(If { condition, body, else_body });
+        }
+    }
+
+    let else_body = Vec::new();
+    Ok(If { condition, body, else_body })
 }
 
 fn parse_return(ti: &mut TI<'_>) -> Result<Return, ParseError> {
