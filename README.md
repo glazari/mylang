@@ -33,6 +33,7 @@ The user still needs to know the assembly for the cmp and the jump type (jne, jg
 	- conditional is an expression whose top level is a comparison	
 - Add while loops
 - Add division, multiplication and modulo
+- Add global byte array for strings
 
 
 # Minimal language
@@ -143,7 +144,13 @@ the distinction between expression and conditional I think will make parsing mor
 
 ```
 
-program = { function }
+program = { topLevel }
+
+topLevel = function | global
+
+global = "global" identifier type ";"
+
+type = "[" Int "]" "byte"
 
 function = "fn" identifier "(" [ parameters ] ")" [ "->" identifier ] block
 

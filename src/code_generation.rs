@@ -85,6 +85,7 @@ _start:
             Stmt::If(if_statement) => {
                self.generate_if_statement(if_statement, p_env, f_env); 
             }
+            Stmt::While(while_stmt) => self.generate_while_stmt(while_stmt, p_env, f_env),
             Stmt::Assign(assign_statement) => {
                 self.generate_assign_statement(assign_statement, p_env, f_env);
             }
@@ -116,6 +117,42 @@ _start:
         self.generate_expression(&assign_statement.value, p_env, f_env);
         let var_address = Self::get_var_address(&assign_statement.name, f_env);
         self.add_asm(&format!("mov [rbp - {}], rax", var_address));
+    }
+
+    fn generate_while_stmt(&mut self, while_stmt: &While, p_env: &ProgEnv, f_env: &FuncEnv) {
+        let label_count = self.lable_counter;
+        self.lable_counter += 1;
+
+        let condition_label = format!("while_condition_{}", label_count);
+        let body_label = format!("while_body_{}", label_count);
+        let end_label = format!("while_end_{}", label_count);
+
+        self.add_label(&condition_label);
+        match &while_stmt.condition {
+            Exp::BinOp(ref e1, op, ref e2) => {
+                self.generate_expression(e1, p_env, f_env);
+                self.add_asm("push rax");
+                self.generate_expression(e2, p_env, f_env);
+                self.add_asm("pop rbx");
+                self.add_asm("cmp rbx, rax");
+                let jmp = match op {
+                    Op::LT => "jge",
+                    Op::GT => "jle",
+                    Op::Ne => "je",
+                    Op::Eq => "jne",
+                    _ => { panic!("unimplemented"); }
+                };
+                self.add_asm(&format!("{} {}", jmp, end_label));
+            }
+            _ => { panic!("unimplemented"); }
+        }
+
+        self.add_label(&body_label);
+        for stmt in &while_stmt.body {
+            self.generate_statement(stmt, p_env, f_env);
+        }
+        self.add_asm(&format!("jmp {}", condition_label));
+        self.add_label(&end_label);
     }
 
     fn generate_if_statement(&mut self, if_statement: &If, p_env: &ProgEnv, f_env: &FuncEnv) {

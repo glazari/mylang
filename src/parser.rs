@@ -87,6 +87,10 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
                 let if_statement = parse_if(ti)?;
                 statements.push(Stmt::If(if_statement));
             }
+            TT::Keyword(KW::While) => {
+                let while_stmt = parse_while(ti)?;
+                statements.push(Stmt::While(while_stmt));
+            }
             TT::Ident(_) => {
                 let stmt = parse_ident_start_statement(ti)?;
                 statements.push(stmt);
@@ -100,6 +104,24 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
     expect(ti, TT::RBrace, "}")?;
 
     Ok(statements)
+}
+
+fn parse_while(ti: &mut TI<'_>) -> Result<While, ParseError> {
+    expect(ti, TT::Keyword(KW::While), "while")?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::LParen, "(")?;
+
+    skip_whitespace(ti);
+    let condition = parse_expression(ti, Precedence::Lowest)?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::RParen, ")")?;
+
+    skip_whitespace(ti);
+    let body = parse_block(ti)?;
+
+    Ok(While { condition, body })
 }
 
 fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
