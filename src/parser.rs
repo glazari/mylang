@@ -68,41 +68,20 @@ fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
 }
 
 fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
-    let mut statements = Vec::new();
+    let mut stmts = Vec::new();
     expect(ti, TT::LBrace, "{")?;
 
     loop {
         skip_whitespace(ti);
         let t = ti.peek().ok_or(error_eof("statement or }"))?;
         match t.token_type {
-            TT::Keyword(KW::Let) => {
-                let let_statement = parse_let(ti)?;
-                statements.push(Stmt::Let(let_statement));
-            }
-            TT::Keyword(KW::Return) => {
-                let return_statement = parse_return(ti)?;
-                statements.push(Stmt::Return(return_statement));
-            }
-            TT::Keyword(KW::If) => {
-                let if_statement = parse_if(ti)?;
-                statements.push(Stmt::If(if_statement));
-            }
-            TT::Keyword(KW::While) => {
-                let while_stmt = parse_while(ti)?;
-                statements.push(Stmt::While(while_stmt));
-            }
-            TT::Keyword(KW::Do) => {
-                let do_while_stmt = parse_do_while(ti)?;
-                statements.push(Stmt::DoWhile(do_while_stmt));
-            }
-            TT::Ident(_) => {
-                let stmt = parse_ident_start_statement(ti)?;
-                statements.push(stmt);
-            }
-            TT::Keyword(KW::ASM) => {
-                let asm = parse_asm(ti)?;
-                statements.push(Stmt::Asm(asm));
-            }
+            TT::Keyword(KW::Let) => stmts.push(Stmt::Let(parse_let(ti)?)),
+            TT::Keyword(KW::Return) => stmts.push(Stmt::Return(parse_return(ti)?)),
+            TT::Keyword(KW::If) => stmts.push(Stmt::If(parse_if(ti)?)),
+            TT::Keyword(KW::While) => stmts.push(Stmt::While(parse_while(ti)?)),
+            TT::Keyword(KW::Do) => stmts.push(Stmt::DoWhile(parse_do_while(ti)?)),
+            TT::Ident(_) => stmts.push(parse_ident_start_statement(ti)?),
+            TT::Keyword(KW::ASM) => stmts.push(Stmt::Asm(parse_asm(ti)?)),
             TT::RBrace => break,
             _ => return error("statement", t),
         }
@@ -110,7 +89,7 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
 
     expect(ti, TT::RBrace, "}")?;
 
-    Ok(statements)
+    Ok(stmts)
 }
 
 fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
@@ -163,9 +142,8 @@ fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
 
     skip_whitespace(ti);
 
-
     expect(ti, TT::RBrace, "}")?;
-    Ok(Asm {  segments })
+    Ok(Asm { segments })
 }
 
 fn parse_do_while(ti: &mut TI<'_>) -> Result<DoWhile, ParseError> {
@@ -303,6 +281,7 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
 }
 
 fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError> {
+    skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("expression"))?;
     let mut exp = match t.token_type {
         TT::Int(n) => Exp::Int(n),
@@ -316,33 +295,17 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
         if prec >= next_prec {
             break;
         }
+        let t = ti.next().ok_or(error_eof("expression"))?;
         match t.token_type {
-            TT::Plus
-            | TT::Minus
-            | TT::Asterisk
-            | TT::Slash
-            | TT::Percent
-            | TT::Eq
-            | TT::NotEq
-            | TT::Lt
-            | TT::Gt => {
-                let t = ti.next().unwrap();
-                skip_whitespace(ti);
-                let right_exp = parse_expression(ti, next_prec)?;
-                let op = match t.token_type {
-                    TT::Plus => Op::Add,
-                    TT::Minus => Op::Sub,
-                    TT::Asterisk => Op::Mul,
-                    TT::Slash => Op::Div,
-                    TT::Percent => Op::Mod,
-                    TT::Eq => Op::Eq,
-                    TT::NotEq => Op::Ne,
-                    TT::Lt => Op::LT,
-                    TT::Gt => Op::GT,
-                    _ => unreachable!(),
-                };
-                exp = Exp::BinOp(Box::new(exp), op, Box::new(right_exp));
-            }
+            TT::Plus => exp = binop(exp, Op::Add, parse_expression(ti, next_prec)?),
+            TT::Minus => exp = binop(exp, Op::Sub, parse_expression(ti, next_prec)?),
+            TT::Asterisk => exp = binop(exp, Op::Mul, parse_expression(ti, next_prec)?),
+            TT::Slash => exp = binop(exp, Op::Div, parse_expression(ti, next_prec)?),
+            TT::Percent => exp = binop(exp, Op::Mod, parse_expression(ti, next_prec)?),
+            TT::Eq => exp = binop(exp, Op::Eq, parse_expression(ti, next_prec)?),
+            TT::NotEq => exp = binop(exp, Op::Ne, parse_expression(ti, next_prec)?),
+            TT::Lt => exp = binop(exp, Op::LT, parse_expression(ti, next_prec)?),
+            TT::Gt => exp = binop(exp, Op::GT, parse_expression(ti, next_prec)?),
             TT::Semicolon | TT::EOF => break,
             TT::Comma | TT::RParen => break, // expressions can appear as arguments to function calls
             _ => return error("operator or ;", t),
@@ -502,7 +465,7 @@ mod test {
                 params: Vec::new(),
                 body: vec![Stmt::Let(Let {
                     name: "x".to_string(),
-                    value: Exp::add(Expression::Int(42), Expression::Int(1)),
+                    value: add(int(42), int(1)),
                 })],
             }],
         };
@@ -514,31 +477,31 @@ mod test {
 
     // helper functions to make the tests more concise
     fn add(x: Exp, y: Exp) -> Exp {
-        Exp::add(x, y)
+        binop(x, Op::Add, y)
     }
     fn sub(x: Exp, y: Exp) -> Exp {
-        Exp::sub(x, y)
+        binop(x, Op::Sub, y)
     }
     fn int(n: i64) -> Exp {
         Exp::Int(n)
     }
     fn mul(x: Exp, y: Exp) -> Exp {
-        Exp::mul(x, y)
+        binop(x, Op::Mul, y)
     }
     fn div(x: Exp, y: Exp) -> Exp {
-        Exp::div(x, y)
+        binop(x, Op::Div, y)
     }
     fn eq(x: Exp, y: Exp) -> Exp {
-        Exp::eq(x, y)
+        binop(x, Op::Eq, y)
     }
     fn ne(x: Exp, y: Exp) -> Exp {
-        Exp::ne(x, y)
+        binop(x, Op::Ne, y)
     }
     fn lt(x: Exp, y: Exp) -> Exp {
-        Exp::lt(x, y)
+        binop(x, Op::LT, y)
     }
     fn gt(x: Exp, y: Exp) -> Exp {
-        Exp::gt(x, y)
+        binop(x, Op::GT, y)
     }
 
     #[test]
@@ -633,7 +596,6 @@ mod test {
         assert_eq!(p, Ok(expected));
     }
 
-
     #[test]
     fn test_parse_asm() {
         let input = r#"asm {
@@ -665,7 +627,5 @@ mod test {
         }
 
         assert_eq!(a, Ok(expected));
-
-
     }
 }

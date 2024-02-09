@@ -3,10 +3,7 @@ mod checked_program;
 mod code_generation;
 mod tokenizer;
 mod parser;
-mod primes_v1;
-mod primes_v2_flow_control;
 
-use crate::ast::*;
 use crate::code_generation::*;
 use crate::parser::parse_program;
 

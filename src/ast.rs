@@ -109,32 +109,6 @@ pub struct Call {
     pub args: Vec<Expression>,
 }
 
-
-
-impl Exp {
-    pub fn add(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::Add, Box::new(right))
-    }
-    pub fn sub(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::Sub, Box::new(right))
-    }
-    pub fn mul(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::Mul, Box::new(right))
-    }
-    pub fn div(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::Div, Box::new(right))
-    }
-    pub fn eq(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::Eq, Box::new(right))
-    }
-    pub fn ne(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::Ne, Box::new(right))
-    }
-    pub fn lt(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::LT, Box::new(right))
-    }
-    pub fn gt(left: Exp, right: Exp) -> Exp {
-        Exp::BinOp(Box::new(left), Operator::GT, Box::new(right))
-    }
+pub fn binop(left: Exp, op: Op, right: Exp) -> Exp {
+    Exp::BinOp(Box::new(left), op, Box::new(right))
 }
-

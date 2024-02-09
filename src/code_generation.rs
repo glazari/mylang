@@ -60,8 +60,8 @@ _start:
         self.add_asm(&format!("sub rsp, {}", bytes_local_variables));
 
         self.add_asm("; body");
-        for statement in &function.body {
-            self.generate_statement(statement, prog_env, func_env);
+        for stmt in &function.body {
+            self.generate_statement(stmt, prog_env, func_env);
         }
 
         self.add_asm("; epilogue");
@@ -77,25 +77,17 @@ _start:
 
     fn generate_statement(&mut self, stmt: &Stmt, p_env: &ProgEnv, f_env: &FuncEnv) {
         match stmt {
-            Stmt::Let(let_statement) => {
-                self.generate_let_statement(let_statement, p_env, f_env);
-            }
-            Stmt::If(if_statement) => {
-                self.generate_if_statement(if_statement, p_env, f_env);
-            }
+            Stmt::Let(let_stmt) => self.generate_let_statement(let_stmt, p_env, f_env),
+            Stmt::If(if_stmt) => self.generate_if_statement(if_stmt, p_env, f_env),
             Stmt::While(while_stmt) => self.generate_while_stmt(while_stmt, p_env, f_env),
             Stmt::DoWhile(do_while) => self.generate_do_while_stmt(do_while, p_env, f_env),
-            Stmt::Assign(assign_statement) => {
-                self.generate_assign_statement(assign_statement, p_env, f_env);
-            }
-            Stmt::Return(return_statement) => {
-                self.generate_expression(&return_statement.value, p_env, f_env);
+            Stmt::Assign(assign_stmt) => self.generate_assign_statement(assign_stmt, p_env, f_env),
+            Stmt::Return(return_stmt) => {
+                self.generate_expression(&return_stmt.value, p_env, f_env);
                 self.add_asm("mov [rbp + 16], rax");
                 self.generate_function_epilogue(f_env);
             }
-            Stmt::Asm(asm) => {
-                self.generate_asm_block(asm, p_env, f_env);
-            }
+            Stmt::Asm(asm) => self.generate_asm_block(asm, p_env, f_env),
         }
     }
 
@@ -133,14 +125,9 @@ _start:
         panic!("Variable not found: {}", var_name);
     }
 
-    fn generate_assign_statement(
-        &mut self,
-        assign_statement: &Assign,
-        p_env: &ProgEnv,
-        f_env: &FuncEnv,
-    ) {
-        self.generate_expression(&assign_statement.value, p_env, f_env);
-        let var_address = Self::get_var_address(&assign_statement.name, f_env);
+    fn generate_assign_statement(&mut self, assign: &Assign, p_env: &ProgEnv, f_env: &FuncEnv) {
+        self.generate_expression(&assign.value, p_env, f_env);
+        let var_address = Self::get_var_address(&assign.name, f_env);
         self.add_asm(&format!("mov [rbp - {}], rax", var_address));
     }
 
@@ -170,9 +157,7 @@ _start:
                     Op::GT => "jg",
                     Op::Ne => "jne",
                     Op::Eq => "je",
-                    _ => {
-                        panic!("unimplemented");
-                    }
+                    _ => panic!("unimplemented"),
                 };
                 self.add_asm(&format!("{} {}", jmp, end_label));
             }
@@ -205,15 +190,11 @@ _start:
                     Op::GT => "jle",
                     Op::Ne => "je",
                     Op::Eq => "jne",
-                    _ => {
-                        panic!("unimplemented");
-                    }
+                    _ => panic!("unimplemented"),
                 };
                 self.add_asm(&format!("{} {}", jmp, end_label));
             }
-            _ => {
-                panic!("unimplemented");
-            }
+            _ => panic!("unimplemented"),
         }
 
         self.add_label(&body_label);
@@ -224,7 +205,7 @@ _start:
         self.add_label(&end_label);
     }
 
-    fn generate_if_statement(&mut self, if_statement: &If, p_env: &ProgEnv, f_env: &FuncEnv) {
+    fn generate_if_statement(&mut self, if_stmt: &If, p_env: &ProgEnv, f_env: &FuncEnv) {
         let label_count = self.lable_counter;
         self.lable_counter += 1;
 
@@ -234,7 +215,7 @@ _start:
         let end_label = format!("end_{}", label_count);
 
         self.add_label(&if_condition_label);
-        match &if_statement.condition {
+        match &if_stmt.condition {
             Exp::BinOp(ref e1, op, ref e2) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.add_asm("push rax");
@@ -246,26 +227,22 @@ _start:
                     Op::GT => "jle",
                     Op::Ne => "je",
                     Op::Eq => "jne",
-                    _ => {
-                        panic!("unimplemented");
-                    }
+                    _ => panic!("unimplemented"),
                 };
                 self.add_asm(&format!("{} {}", jmp, else_label));
             }
-            _ => {
-                panic!("unimplemented");
-            }
+            _ => panic!("unimplemented"),
         }
         self.add_label(&if_body_label);
-        for stmt in &if_statement.body {
+        for stmt in &if_stmt.body {
             self.generate_statement(stmt, p_env, f_env);
         }
 
         self.add_asm(&format!("jmp {}", end_label));
         self.add_label(&else_label);
 
-        for statement in &if_statement.else_body {
-            self.generate_statement(statement, p_env, f_env);
+        for stmt in &if_stmt.else_body {
+            self.generate_statement(stmt, p_env, f_env);
         }
 
         self.add_label(&end_label);
@@ -305,9 +282,7 @@ _start:
                         self.add_asm("div rbx"); // rdx := rdx:rax % rbx
                         self.add_asm("mov rax, rdx");
                     }
-                    _ => {
-                        panic!("unimplemented");
-                    }
+                    _ => panic!("unimplemented"),
                 };
             }
             Exp::Call(call) => {
