@@ -61,7 +61,14 @@ pub struct Let {
 
 #[derive(Debug, PartialEq)]
 pub struct Asm {
-    pub lines: Vec<String>,
+    pub segments: Vec<ASMSegment>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ASMSegment {
+  String(String),
+  Variable(String),
+  Newline,
 }
 
 #[derive(Debug, PartialEq)]

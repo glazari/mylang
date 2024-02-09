@@ -231,6 +231,59 @@ fn tokenize_whitespace(chars: &mut Peekable<Chars>, fi: &mut FileInfo, tokens: &
     }
 }
 
+
+impl TokenType {
+    pub fn string(&self) -> String {
+        let tmp: String;
+        let out = match self {
+            TokenType::EOF => "",
+            TokenType::Illegal => "Illegal",
+            TokenType::Ident(s) => s,
+            TokenType::Keyword(kw) => match kw {
+                Keyword::Fn => "fn",
+                Keyword::If => "if",
+                Keyword::Else => "else",
+                Keyword::While => "while",
+                Keyword::Do => "do",
+                Keyword::Return => "return",
+                Keyword::Let => "let",
+                Keyword::ASM => "asm",
+            },
+            TokenType::Int(i) => {
+                tmp = i.to_string(); 
+                &tmp
+            },
+            TokenType::LParen => "(",
+            TokenType::RParen => ")",
+            TokenType::LBrace => "{",
+            TokenType::RBrace => "}",
+            TokenType::LBracket => "[",
+            TokenType::RBracket => "]",
+            TokenType::ReturnArrow => "->",
+            TokenType::Comma => ",",
+            TokenType::Semicolon => ";",
+            TokenType::Assign => "=",
+            TokenType::Eq => "==",
+            TokenType::NotEq => "!=",
+            TokenType::Lt => "<",
+            TokenType::Gt => ">",
+            TokenType::Plus => "+",
+            TokenType::Minus => "-",
+            TokenType::Asterisk => "*",
+            TokenType::Slash => "/",
+            TokenType::Percent => "%",
+            TokenType::Newline => "\n",
+            TokenType::Whitespace => " ",
+            TokenType::Comment(s) => {
+                tmp = format!("//{}", s);
+                &tmp
+            },
+        };
+        out.to_string()
+    }
+}
+
+
 #[cfg(test)]
 mod test {
     use super::*;

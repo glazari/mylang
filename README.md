@@ -34,6 +34,7 @@ The user still needs to know the assembly for the cmp and the jump type (jne, jg
 - Add while loops
 - Add division, multiplication and modulo
 - Add global byte array for strings
+- Add asm escape
 
 
 # Minimal language
@@ -50,6 +51,10 @@ A minimal language needs:
 - print to stdout (takes address)
 - a way of declaring fixed sized string (no dynamic memory allocation)
 
+- arrays (fixed size)
+- structs
+- enums? (sum types)?
+
 # Calling convention
 
 Aiming for simplicity, everything is passed on the stack, in the following order:
@@ -61,6 +66,7 @@ Aiming for simplicity, everything is passed on the stack, in the following order
 
 # ideas
 - write tcp primitives (echo server, http server)
+- write multithreaded program (mutex, channels)
 
 ## Learnings
 

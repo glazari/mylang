@@ -1,6 +1,22 @@
 fn main() {
+  let a = print_chr(50);
+  a = print_chr(48);
+  a = print_chr(10);
   let c = add_all(10);
   c = c + 1;
+  let b = add_all_do_while(10);
+  
+}
+
+fn print_chr(a) {
+  asm {
+    mov rsi, rbp
+    add rsi, 24 ; point to address of a
+    mov rdx, 1 ; length
+    mov rax, 1 ; write syscall
+    mov rdi, 1 ; stdout file handle
+    syscall
+  }
 }
 
 fn add_all(range) {
@@ -11,4 +27,13 @@ fn add_all(range) {
     num = num + 1;
   }
   return sum;
+}
+
+fn add_all_do_while(range) {
+  let sum = 0;
+  let num = 1;
+  do {
+    sum = sum + num;
+    num = num + 1;
+  } while (num < range);
 }

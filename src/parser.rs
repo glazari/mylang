@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::tokenizer::{FI, KW, Token, TT};
+use crate::tokenizer::{Token, FI, KW, TT};
 use std::iter::Peekable;
 use std::slice::Iter;
 
@@ -91,19 +91,105 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
                 let while_stmt = parse_while(ti)?;
                 statements.push(Stmt::While(while_stmt));
             }
+            TT::Keyword(KW::Do) => {
+                let do_while_stmt = parse_do_while(ti)?;
+                statements.push(Stmt::DoWhile(do_while_stmt));
+            }
             TT::Ident(_) => {
                 let stmt = parse_ident_start_statement(ti)?;
                 statements.push(stmt);
             }
+            TT::Keyword(KW::ASM) => {
+                let asm = parse_asm(ti)?;
+                statements.push(Stmt::Asm(asm));
+            }
             TT::RBrace => break,
             _ => return error("statement", t),
         }
-
     }
 
     expect(ti, TT::RBrace, "}")?;
 
     Ok(statements)
+}
+
+fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
+    expect(ti, TT::Keyword(KW::ASM), "asm")?;
+    skip_whitespace(ti);
+    expect(ti, TT::LBrace, "{")?;
+    let mut segments = Vec::new();
+
+    skip_whitespace(ti);
+    let mut segment = String::new();
+    loop {
+        let t = ti.peek().ok_or(error_eof("asm segment or }"))?;
+        match t.token_type {
+            TT::RBrace => {
+                if !segment.is_empty() {
+                    segments.push(ASMSegment::String(segment));
+                }
+                break;
+            }
+            TT::LBrace => {
+                if !segment.is_empty() {
+                    segments.push(ASMSegment::String(segment));
+                    segment = String::new();
+                }
+                ti.next();
+                // expect a variable name
+                let t = ti.next().ok_or(error_eof("variable"))?;
+                let name = match t.token_type {
+                    TT::Ident(ref s) => s.clone(),
+                    _ => return error("variable", t),
+                };
+                segments.push(ASMSegment::Variable(name));
+                skip_whitespace(ti);
+                expect(ti, TT::RBrace, "}")?;
+            }
+            TT::Newline => {
+                if !segment.is_empty() {
+                    segments.push(ASMSegment::String(segment));
+                    segment = String::new();
+                }
+                segments.push(ASMSegment::Newline);
+                skip_whitespace(ti);
+            }
+            _ => {
+                segment.push_str(&t.token_type.string());
+                ti.next();
+            }
+        }
+    }
+
+    skip_whitespace(ti);
+
+
+    expect(ti, TT::RBrace, "}")?;
+    Ok(Asm {  segments })
+}
+
+fn parse_do_while(ti: &mut TI<'_>) -> Result<DoWhile, ParseError> {
+    expect(ti, TT::Keyword(KW::Do), "do")?;
+
+    skip_whitespace(ti);
+    let body = parse_block(ti)?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::Keyword(KW::While), "while")?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::LParen, "(")?;
+
+    skip_whitespace(ti);
+    let condition = parse_expression(ti, Precedence::Lowest)?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::RParen, ")")?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::Semicolon, ";")?;
+
+    Ok(DoWhile { condition, body })
 }
 
 fn parse_while(ti: &mut TI<'_>) -> Result<While, ParseError> {
@@ -139,18 +225,22 @@ fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
     skip_whitespace(ti);
     let body = parse_block(ti)?;
 
+    let mut else_body = Vec::new();
+
     skip_whitespace(ti);
     if let Some(t) = ti.peek() {
         if t.token_type == TT::Keyword(KW::Else) {
             ti.next();
             skip_whitespace(ti);
-            let else_body = parse_block(ti)?;
-            return Ok(If { condition, body, else_body });
+            else_body = parse_block(ti)?;
         }
     }
 
-    let else_body = Vec::new();
-    Ok(If { condition, body, else_body })
+    Ok(If {
+        condition,
+        body,
+        else_body,
+    })
 }
 
 fn parse_return(ti: &mut TI<'_>) -> Result<Return, ParseError> {
@@ -181,10 +271,7 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
             let value = parse_expression(ti, Precedence::Lowest)?;
             skip_whitespace(ti);
             expect(ti, TT::Semicolon, ";")?;
-            Ok(Stmt::Assign(Assign {
-                name,
-                value,
-            }))
+            Ok(Stmt::Assign(Assign { name, value }))
         }
         TT::LParen => {
             panic!("call not implemented");
@@ -192,7 +279,6 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
         _ => error("assignment or call", t),
     }
 }
-
 
 fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     expect(ti, TT::Keyword(KW::Let), "let")?;
@@ -219,8 +305,8 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
 fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError> {
     let t = ti.next().ok_or(error_eof("expression"))?;
     let mut exp = match t.token_type {
-        TT::Int(n) => { Exp::Int(n) }
-        TT::Ident(ref s) => { parse_ident_start_expression(ti, s.clone())? }
+        TT::Int(n) => Exp::Int(n),
+        TT::Ident(ref s) => parse_ident_start_expression(ti, s.clone())?,
         _ => return error("expression", t),
     };
 
@@ -231,15 +317,22 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
             break;
         }
         match t.token_type {
-            TT::Plus | TT::Minus | TT::Asterisk | TT::Slash | TT::Eq | TT::NotEq | TT::Lt | TT::Gt => {
+            TT::Plus
+            | TT::Minus
+            | TT::Asterisk
+            | TT::Slash
+            | TT::Eq
+            | TT::NotEq
+            | TT::Lt
+            | TT::Gt => {
                 let t = ti.next().unwrap();
                 skip_whitespace(ti);
                 let right_exp = parse_expression(ti, next_prec)?;
                 let op = match t.token_type {
-                    TT::Plus => Op::Add, 
-                    TT::Minus => Op::Sub, 
-                    TT::Asterisk => Op::Mul, 
-                    TT::Slash => Op::Div, 
+                    TT::Plus => Op::Add,
+                    TT::Minus => Op::Sub,
+                    TT::Asterisk => Op::Mul,
+                    TT::Slash => Op::Div,
                     TT::Eq => Op::Eq,
                     TT::NotEq => Op::Ne,
                     TT::Lt => Op::LT,
@@ -247,14 +340,12 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
                     _ => unreachable!(),
                 };
                 exp = Exp::BinOp(Box::new(exp), op, Box::new(right_exp));
-                
             }
             TT::Semicolon | TT::EOF => break,
             TT::Comma | TT::RParen => break, // expressions can appear as arguments to function calls
             _ => return error("operator or ;", t),
         }
     }
-
 
     Ok(exp)
 }
@@ -266,7 +357,6 @@ fn parse_ident_start_expression(ti: &mut TI<'_>, name: String) -> Result<Exp, Pa
         TT::LParen => {
             let call = parse_call(ti, name)?;
             Ok(Exp::Call(call))
-
         }
         _ => Ok(Exp::Var(name)),
     }
@@ -283,7 +373,7 @@ fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
             TT::RParen => {
                 ti.next();
                 break;
-            },
+            }
             _ => parse_expression(ti, Precedence::Lowest)?,
         };
         args.push(arg);
@@ -298,7 +388,6 @@ fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
 
     Ok(Call { name, args })
 }
-
 
 fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     let mut params = Vec::new();
@@ -355,18 +444,23 @@ impl ParseError {
             line_num += 1;
         }
 
-
         println!("Error at line {}", self.token.fi.line);
         // fixed space for line number 3 digits
         println!("{:3}: {}", self.token.fi.line, line);
         let red = "\x1b[31m";
         let reset = "\x1b[0m";
-        println!("     {}{}^{}", red,"-".repeat(self.token.fi.column - 1), reset);
-        println!("Error: expected `{}` but found {:?}", self.expected, self.token.token_type);
+        println!(
+            "     {}{}^{}",
+            red,
+            "-".repeat(self.token.fi.column - 1),
+            reset
+        );
+        println!(
+            "Error: expected `{}` but found {:?}",
+            self.expected, self.token.token_type
+        );
         println!();
     }
-
-
 }
 
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -388,8 +482,6 @@ fn precedence(t: &Token) -> Precedence {
         _ => Precedence::Lowest,
     }
 }
-
-
 
 #[cfg(test)]
 mod test {
@@ -446,7 +538,6 @@ mod test {
     fn gt(x: Exp, y: Exp) -> Exp {
         Exp::gt(x, y)
     }
-    
 
     #[test]
     fn test_parse_expression() {
@@ -496,7 +587,6 @@ mod test {
                     add(int(4), mul(int(5), int(6))),
                 ),
             },
-
         ];
 
         for t in cases {
@@ -519,9 +609,15 @@ mod test {
         let input = "(x, y, z)";
         let tokens = tokenize(input);
         let expected = vec![
-            Parameter { name: "x".to_string() },
-            Parameter { name: "y".to_string() },
-            Parameter { name: "z".to_string() },
+            Parameter {
+                name: "x".to_string(),
+            },
+            Parameter {
+                name: "y".to_string(),
+            },
+            Parameter {
+                name: "z".to_string(),
+            },
         ];
 
         let mut ti = tokens.iter().peekable();
@@ -533,5 +629,41 @@ mod test {
         }
 
         assert_eq!(p, Ok(expected));
+    }
+
+
+    #[test]
+    fn test_parse_asm() {
+        let input = r#"asm {
+                mov rax, 42
+                mov rdi, {a}
+                syscall
+            }
+        "#;
+
+        let expected = Asm {
+            segments: vec![
+                ASMSegment::String("mov rax, 42".to_string()),
+                ASMSegment::Newline,
+                ASMSegment::String("mov rdi, ".to_string()),
+                ASMSegment::Variable("a".to_string()),
+                ASMSegment::Newline,
+                ASMSegment::String("syscall".to_string()),
+                ASMSegment::Newline,
+            ],
+        };
+
+        let tokens = tokenize(input);
+        let mut ti = tokens.iter().peekable();
+        let a = parse_asm(&mut ti);
+
+        if let Err(e) = a {
+            e.pretty_print(input);
+            panic!("parse error");
+        }
+
+        assert_eq!(a, Ok(expected));
+
+
     }
 }
