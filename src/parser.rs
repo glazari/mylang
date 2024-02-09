@@ -321,6 +321,7 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
             | TT::Minus
             | TT::Asterisk
             | TT::Slash
+            | TT::Percent
             | TT::Eq
             | TT::NotEq
             | TT::Lt
@@ -333,6 +334,7 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
                     TT::Minus => Op::Sub,
                     TT::Asterisk => Op::Mul,
                     TT::Slash => Op::Div,
+                    TT::Percent => Op::Mod,
                     TT::Eq => Op::Eq,
                     TT::NotEq => Op::Ne,
                     TT::Lt => Op::LT,
@@ -477,7 +479,7 @@ fn precedence(t: &Token) -> Precedence {
     match t.token_type {
         TT::Eq | TT::NotEq | TT::Lt | TT::Gt => Precedence::Comparison,
         TT::Plus | TT::Minus => Precedence::Sum,
-        TT::Asterisk | TT::Slash => Precedence::Product,
+        TT::Asterisk | TT::Slash | TT::Percent => Precedence::Product,
         TT::LParen => Precedence::Call,
         _ => Precedence::Lowest,
     }

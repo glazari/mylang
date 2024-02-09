@@ -1,11 +1,51 @@
 fn main() {
-  let a = print_chr(50);
-  a = print_chr(48);
+  let ch = 50;
+  a = print_number(987654123);
+  let a = print_chrln(10);
+}
+
+fn print_numberln(num) {
+  let a = print_number(num);
   a = print_chr(10);
-  let c = add_all(10);
-  c = c + 1;
-  let b = add_all_do_while(10);
+}
+
+fn print_number(num) {
+  let num_size = 0;
+  let cp_num = num;
+  while (cp_num > 0) {
+    cp_num = cp_num / 10;
+    num_size = num_size + 1;
+  }
+  let digit = 0;
+  let base = 0;
+
+  while (num > 0) {
+    base = pow(10, num_size-1);
+    digit = num / base;
+    cp_num = print_digit(digit);
+    num = num % base;
+    num_size = num_size - 1;
+  } 
   
+}
+
+fn pow(base, exp) {
+  let prod = 1;
+  while (exp > 0) {
+    prod = prod * base;
+    exp = exp - 1;
+  }
+  return prod;
+}
+
+fn print_digit(d) {
+  let c = d + 48;
+  let a = print_chr(c);
+}
+
+fn print_chrln(c) {
+  let a = print_chr(c);
+  a = print_chr(10);
 }
 
 fn print_chr(a) {

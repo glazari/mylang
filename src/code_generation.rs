@@ -3,8 +3,6 @@ use crate::checked_program::*;
 use std::fs::File;
 use std::io::prelude::*;
 
-
-
 pub struct CodeGenerator {
     assembly: String,
     lable_counter: u32,
@@ -36,7 +34,7 @@ _start:
 ",
         );
 
-        // enumerate functions 
+        // enumerate functions
         for (i, function) in prog.prog.functions.iter().enumerate() {
             self.generate_function(function, &prog.program_env, &prog.function_envs[i]);
         }
@@ -65,7 +63,7 @@ _start:
         for statement in &function.body {
             self.generate_statement(statement, prog_env, func_env);
         }
-        
+
         self.add_asm("; epilogue");
         self.generate_function_epilogue(func_env);
     }
@@ -83,7 +81,7 @@ _start:
                 self.generate_let_statement(let_statement, p_env, f_env);
             }
             Stmt::If(if_statement) => {
-               self.generate_if_statement(if_statement, p_env, f_env); 
+                self.generate_if_statement(if_statement, p_env, f_env);
             }
             Stmt::While(while_stmt) => self.generate_while_stmt(while_stmt, p_env, f_env),
             Stmt::DoWhile(do_while) => self.generate_do_while_stmt(do_while, p_env, f_env),
@@ -119,7 +117,6 @@ _start:
                 }
             }
         }
-
     }
 
     fn get_var_address(var_name: &str, f_env: &FuncEnv) -> i64 {
@@ -131,12 +128,17 @@ _start:
         if let Some(param_num) = param_num {
             let num_rev = f_env.function_params.len() - param_num - 1;
             let const_offset = 24; // rbp, return address, return value
-            return - ((num_rev as i64) * 8 + const_offset);
+            return -((num_rev as i64) * 8 + const_offset);
         }
         panic!("Variable not found: {}", var_name);
     }
 
-    fn generate_assign_statement(&mut self, assign_statement: &Assign, p_env: &ProgEnv, f_env: &FuncEnv) {
+    fn generate_assign_statement(
+        &mut self,
+        assign_statement: &Assign,
+        p_env: &ProgEnv,
+        f_env: &FuncEnv,
+    ) {
         self.generate_expression(&assign_statement.value, p_env, f_env);
         let var_address = Self::get_var_address(&assign_statement.name, f_env);
         self.add_asm(&format!("mov [rbp - {}], rax", var_address));
@@ -168,11 +170,15 @@ _start:
                     Op::GT => "jg",
                     Op::Ne => "jne",
                     Op::Eq => "je",
-                    _ => { panic!("unimplemented"); }
+                    _ => {
+                        panic!("unimplemented");
+                    }
                 };
                 self.add_asm(&format!("{} {}", jmp, end_label));
             }
-            _ => { panic!("unimplemented"); }
+            _ => {
+                panic!("unimplemented");
+            }
         }
         self.add_asm(&format!("jmp {}", body_label));
         self.add_label(&end_label);
@@ -199,11 +205,15 @@ _start:
                     Op::GT => "jle",
                     Op::Ne => "je",
                     Op::Eq => "jne",
-                    _ => { panic!("unimplemented"); }
+                    _ => {
+                        panic!("unimplemented");
+                    }
                 };
                 self.add_asm(&format!("{} {}", jmp, end_label));
             }
-            _ => { panic!("unimplemented"); }
+            _ => {
+                panic!("unimplemented");
+            }
         }
 
         self.add_label(&body_label);
@@ -236,11 +246,15 @@ _start:
                     Op::GT => "jle",
                     Op::Ne => "je",
                     Op::Eq => "jne",
-                    _ => { panic!("unimplemented"); }
+                    _ => {
+                        panic!("unimplemented");
+                    }
                 };
                 self.add_asm(&format!("{} {}", jmp, else_label));
             }
-            _ => { panic!("unimplemented"); }
+            _ => {
+                panic!("unimplemented");
+            }
         }
         self.add_label(&if_body_label);
         for stmt in &if_statement.body {
@@ -278,14 +292,23 @@ _start:
                 self.generate_expression(e2, p_env, f_env);
                 self.add_asm("mov rbx, rax");
                 self.add_asm("pop rax");
-                let op_str = match op {
-                    Operator::Add => "add",
-                    Operator::Sub => "sub",
-                    Operator::Mul => "imul",
-                    Operator::Div => "idiv",
-                    _ => { panic!("unimplemented"); }
+                match op {
+                    Operator::Add => self.add_asm("add rax, rbx"),
+                    Operator::Sub => self.add_asm("sub rax, rbx"),
+                    Operator::Mul => self.add_asm("mul rbx"), // mul => RDX:RAX := RAX * r/m64
+                    Operator::Div => {
+                        self.add_asm("cdq"); // sign extend rax to rdx:rax
+                        self.add_asm("div rbx"); // rax := rdx:rax / rbx
+                    }
+                    Operator::Mod => {
+                        self.add_asm("cdq"); // sign extend rax to rdx:rax
+                        self.add_asm("div rbx"); // rdx := rdx:rax % rbx
+                        self.add_asm("mov rax, rdx");
+                    }
+                    _ => {
+                        panic!("unimplemented");
+                    }
                 };
-                self.add_asm(&format!("{} rax, rbx", op_str));
             }
             Exp::Call(call) => {
                 self.generate_call(call, p_env, f_env);
@@ -328,7 +351,6 @@ pub fn compile(prog: Program, out_file: &str) -> Result<(), String> {
 fn delete_file(filename: &str) {
     std::fs::remove_file(filename).expect("remove failed");
 }
-
 
 pub fn save_to_file(filename: &str, contents: &str) {
     let mut file = File::create(filename).expect("create failed");
