@@ -26,15 +26,13 @@ which is used to create the labels.
 The user still needs to know the assembly for the cmp and the jump type (jne, jg, jle...).
 
 # todo
-- Add function paramaters (needs fixing, some bug)
-- Add expression priority parsing (mult, div, greater, less, equal)
-- Fix tokenizing of !=
-- Add if else statements
-	- conditional is an expression whose top level is a comparison	
-- Add while loops
-- Add division, multiplication and modulo
+- Allow call statement (without being in an expression, or allow expression statements)
+- Add test for current features (using  pring_number that I made)
+	- if, else, while, do while
+	- add, sub, mul, div, mod (with precedence)
+	- call functions (with paramaters and return values)
+- Add support for types (int, bool, string, pointer_types?)
 - Add global byte array for strings
-- Add asm escape
 
 
 # Minimal language
