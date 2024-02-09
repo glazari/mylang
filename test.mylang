@@ -1,15 +1,27 @@
 fn main() {
-  let ch = 50;
-  a = print_number(987654123);
-  let a = print_chrln(10);
+  let num = 2;
+  let p = 0;
+  while (num < 100) {
+    if (is_prime(num) == 1) {
+      p = print_numberln(num);
+    }
+    num = num + 1;
+  }
+}
+
+
+fn is_prime(num) {
+  let i = 2;
+  while (i < num) {
+    if (num % i == 0) {
+      return 0;
+    }
+    i = i + 1;
+  }
+  return 1;
 }
 
 fn print_numberln(num) {
-  let a = print_number(num);
-  a = print_chr(10);
-}
-
-fn print_number(num) {
   let num_size = 0;
   let cp_num = num;
   while (cp_num > 0) {
@@ -21,12 +33,12 @@ fn print_number(num) {
 
   while (num > 0) {
     base = pow(10, num_size-1);
-    digit = num / base;
-    cp_num = print_digit(digit);
+    digit = num / base + 48;
+    cp_num = print_chr(digit);
     num = num % base;
     num_size = num_size - 1;
   } 
-  
+  cp_num = print_chr(10);
 }
 
 fn pow(base, exp) {
@@ -38,16 +50,6 @@ fn pow(base, exp) {
   return prod;
 }
 
-fn print_digit(d) {
-  let c = d + 48;
-  let a = print_chr(c);
-}
-
-fn print_chrln(c) {
-  let a = print_chr(c);
-  a = print_chr(10);
-}
-
 fn print_chr(a) {
   asm {
     mov rsi, rbp
@@ -57,23 +59,4 @@ fn print_chr(a) {
     mov rdi, 1 ; stdout file handle
     syscall
   }
-}
-
-fn add_all(range) {
-  let sum = 0;
-  let num = 1;
-  while (num < range) {
-    sum = sum + num;
-    num = num + 1;
-  }
-  return sum;
-}
-
-fn add_all_do_while(range) {
-  let sum = 0;
-  let num = 1;
-  do {
-    sum = sum + num;
-    num = num + 1;
-  } while (num < range);
 }
