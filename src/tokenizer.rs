@@ -175,7 +175,26 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
         '+' => TokenType::Plus,
         '-' => TokenType::Minus,
         '*' => TokenType::Asterisk,
-        '/' => TokenType::Slash,
+        '/' => {
+            if let Some('/') = chars.peek() {
+                chars.next();
+                fi.col_inc();
+                let mut comment = String::new();
+                while let Some(c) = chars.peek() {
+                    match c {
+                        '\n' => break,
+                        _ => {
+                            comment.push(*c);
+                            chars.next();
+                            fi.col_inc();
+                        }
+                    }
+                }
+                TokenType::Comment(comment)
+            } else {
+                TokenType::Slash
+            }
+        }, 
         '%' => TokenType::Percent,
         '<' => TokenType::Lt,
         '>' => TokenType::Gt,
@@ -334,6 +353,24 @@ mod test {
             token(TokenType::Whitespace, 1, 5, 1),
             token(TokenType::Ident("y".to_string()), 1, 6, 1),
             token(TokenType::EOF, 1, 7, 0),
+        ];
+
+        let tokens = tokenize(input);
+
+        assert_eq!(tokens, expected);
+    }
+
+    #[test]
+    fn test_tokenize_comment() {
+        let input = "x // comment\n y";
+        let expected = vec![
+            token(TokenType::Ident("x".to_string()), 1, 1, 1),
+            token(TokenType::Whitespace, 1, 2, 1),
+            token(TokenType::Comment(" comment".to_string()), 1, 3, 10),
+            token(TokenType::Newline, 1, 13, 1),
+            token(TokenType::Whitespace, 2, 1, 1),
+            token(TokenType::Ident("y".to_string()), 2, 2, 1),
+            token(TokenType::EOF, 2, 3, 0),
         ];
 
         let tokens = tokenize(input);

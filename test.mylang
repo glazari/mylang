@@ -1,3 +1,4 @@
+// this is a comment
 fn main() {
   let num = 2;
   let p = 0;
