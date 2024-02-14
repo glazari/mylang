@@ -1,0 +1,49 @@
+fn main() {
+	// Testing basic expression priority
+	print_numberln(1 + 2 + 4);
+	print_numberln(4 + 2 - 1);
+	print_numberln(2+3*5);
+	print_numberln(3+60/5);
+	print_numberln(6- 20%6);
+}
+
+
+fn print_numberln(num) {
+  let num_size = 0;
+  let cp_num = num;
+  while (cp_num > 0) {
+    cp_num = cp_num / 10;
+    num_size = num_size + 1;
+  }
+  let digit = 0;
+  let base = 0;
+
+  while (num > 0) {
+    base = pow(10, num_size-1);
+    digit = num / base + 48;
+    print_chr(digit);
+    num = num % base;
+    num_size = num_size - 1;
+  } 
+  print_chr(10);
+}
+
+fn pow(base, exp) {
+  let prod = 1;
+  while (exp > 0) {
+    prod = prod * base;
+    exp = exp - 1;
+  }
+  return prod;
+}
+
+fn print_chr(a) {
+  asm {
+    mov rsi, rbp
+    add rsi, 24 ; point to address of a
+    mov rdx, 1 ; length
+    mov rax, 1 ; write syscall
+    mov rdi, 1 ; stdout file handle
+    syscall
+  }
+}

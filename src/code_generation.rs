@@ -2,6 +2,9 @@ use crate::ast::*;
 use crate::checked_program::*;
 use std::fs::File;
 use std::io::prelude::*;
+use crate::tokenizer;
+use crate::parser::parse_program;
+
 
 pub struct CodeGenerator {
     assembly: String,
@@ -360,4 +363,62 @@ pub fn nasm(infile: &str, outfile: &str) {
         println!("{}", String::from_utf8_lossy(&output.stderr));
         panic!("nasm failed");
     }
+}
+
+pub fn compile_file(filename: &str) -> Result<(), String> {
+    let input = std::fs::read_to_string(filename).map_err(|e| e.to_string())?;
+    let tokens = tokenizer::tokenize(&input);
+    let prog = parse_program(tokens);
+    if let Err(e) = prog {
+        e.pretty_print(&input);
+        return Err(format!("parse error: {:?}", e));
+    }
+    let prog = prog.unwrap();
+
+    let out_filename = filename.replace(".mylang", "");
+    compile(prog, &out_filename)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_compile() {
+        for file in get_all_files("test_cases") {
+            if !file.ends_with(".mylang") {
+                continue;
+            }
+
+            compile_file(&file).expect("compile error");
+
+            let prog_name = file.replace(".mylang", "");
+            let output = std::process::Command::new(&prog_name)
+                .output()
+                .expect("failed to execute process");
+
+            let expected_out_file = file.replace("_code.mylang", "_out.txt");
+            let expected_output = std::fs::read_to_string(expected_out_file).expect("read failed");
+            let output = String::from_utf8_lossy(&output.stdout);
+            assert_eq!(output, expected_output);
+
+            delete_file(&prog_name);
+            delete_file(&format!("{}.asm", prog_name));
+        } 
+    }
+
+    fn get_all_files(dir: &str) -> Vec<String> {
+        let paths = std::fs::read_dir(dir).expect("read_dir failed");
+        let mut files = Vec::new();
+        for path in paths {
+            let path = path.expect("path failed").path();
+            let path = path.to_str().expect("to_str failed").to_string();
+            files.push(path);
+        }
+        // sort files to have deterministic order
+        files.sort();
+        files
+    }
+
 }
