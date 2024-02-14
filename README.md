@@ -26,7 +26,6 @@ which is used to create the labels.
 The user still needs to know the assembly for the cmp and the jump type (jne, jg, jle...).
 
 # todo
-- Allow call statement (without being in an expression, or allow expression statements)
 - Add test for current features (using  pring_number that I made)
 	- if, else, while, do while
 	- add, sub, mul, div, mod (with precedence)

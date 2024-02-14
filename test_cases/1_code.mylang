@@ -1,10 +1,32 @@
 fn main() {
 	// Testing basic expression priority
 	print_numberln(1 + 2 + 4);
+
+  //  subtraction
 	print_numberln(4 + 2 - 1);
+
+  // multiplication precedence
 	print_numberln(2+3*5);
+
+  // division precendence over addition
 	print_numberln(3+60/5);
+
+  // modulus precidence over subtraction
 	print_numberln(6- 20%6);
+
+  // Comparisson has the least of all precidences
+  if ( 2 + 3 > 1 + 80 ) {
+    print_numberln(666);
+  } else {
+    print_numberln(42);
+  }
+
+
+  let count = 0;
+  while (count < 10) {
+    count = count + 1;
+    print_numberln(count);
+  }
 }
 
 
@@ -18,7 +40,7 @@ fn print_numberln(num) {
   let digit = 0;
   let base = 0;
 
-  while (num > 0) {
+  while (num_size > 0) {
     base = pow(10, num_size-1);
     digit = num / base + 48;
     print_chr(digit);
