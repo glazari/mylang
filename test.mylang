@@ -4,7 +4,7 @@ fn main() {
   let p = 0;
   while (num < 100) {
     if (is_prime(num) == 1) {
-      p = print_numberln(num);
+      print_numberln(num);
     }
     num = num + 1;
   }
@@ -35,11 +35,11 @@ fn print_numberln(num) {
   while (num > 0) {
     base = pow(10, num_size-1);
     digit = num / base + 48;
-    cp_num = print_chr(digit);
+    print_chr(digit);
     num = num % base;
     num_size = num_size - 1;
   } 
-  cp_num = print_chr(10);
+  print_chr(10);
 }
 
 fn pow(base, exp) {

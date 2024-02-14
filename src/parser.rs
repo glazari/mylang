@@ -252,7 +252,10 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
             Ok(Stmt::Assign(Assign { name, value }))
         }
         TT::LParen => {
-            panic!("call not implemented");
+            let call = parse_call(ti, name)?;
+            skip_whitespace(ti);
+            expect(ti, TT::Semicolon, ";")?;
+            Ok(Stmt::Call(call))
         }
         _ => error("assignment or call", t),
     }

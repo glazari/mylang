@@ -115,6 +115,10 @@ impl CheckedProgram {
             Stmt::Assign(assign_stmt) => {
                 Self::check_expression(&assign_stmt.value, f_env, p_env)?;
             }
+            Stmt::Call(call) => {
+                Self::check_call(call, f_env, p_env)?;
+            }
+            
         }
         Ok(())
     }
@@ -155,25 +159,35 @@ impl CheckedProgram {
                 Self::check_expression(&e2, f_env, p_env)?;
             }
             Exp::Call(call) => {
-                if !p_env.function_names.contains(&call.name) {
-                    return Err(format!("Function {} not found", call.name));
-                }
-                let fun_index = p_env
-                    .function_names
-                    .iter()
-                    .position(|x| x == &call.name)
-                    .unwrap();
-                let fun_params = p_env.function_params[fun_index];
-                if fun_params != call.args.len() as u32 {
-                    return Err(format!(
-                        "Function {} takes {} parameters, {} given",
-                        call.name,
-                        fun_params,
-                        call.args.len()
-                    ));
-                }
+                Self::check_call(call, f_env, p_env)?;
             }
         }
+        Ok(())
+    }
+
+    fn check_call(call: &Call, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+        if !p_env.function_names.contains(&call.name) {
+            return Err(format!("Function {} not found", call.name));
+        }
+        let fun_index = p_env
+            .function_names
+            .iter()
+            .position(|x| x == &call.name)
+            .unwrap();
+        let fun_params = p_env.function_params[fun_index];
+        if fun_params != call.args.len() as u32 {
+            return Err(format!(
+                "Function {} takes {} parameters, {} given",
+                call.name,
+                fun_params,
+                call.args.len()
+            ));
+        }
+
+        for arg in &call.args {
+            Self::check_expression(arg, f_env, p_env)?;
+        }
+
         Ok(())
     }
 }

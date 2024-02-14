@@ -32,6 +32,7 @@ pub enum Statement {
    Asm(Asm),
    Return(Return),
    Assign(Assign),
+   Call(Call),
 }
 
 #[derive(Debug, PartialEq)]

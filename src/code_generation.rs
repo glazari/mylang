@@ -88,10 +88,11 @@ _start:
                 self.generate_function_epilogue(f_env);
             }
             Stmt::Asm(asm) => self.generate_asm_block(asm, p_env, f_env),
+            Stmt::Call(call) => self.generate_call(call, p_env, f_env),
         }
     }
 
-    fn generate_asm_block(&mut self, asm: &Asm, p_env: &ProgEnv, f_env: &FuncEnv) {
+    fn generate_asm_block(&mut self, asm: &Asm, _p_env: &ProgEnv, f_env: &FuncEnv) {
         let mut line = String::new();
 
         for segment in &asm.segments {

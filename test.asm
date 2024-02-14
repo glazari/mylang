@@ -46,7 +46,6 @@ if_body_1:
 	call print_numberln
 	mov rax, [rsp]
 	add rsp, 16
-	mov [rbp - 16], rax
 	jmp end_1
 else_1:
 end_1:
@@ -200,7 +199,6 @@ while_body_5:
 	call print_chr
 	mov rax, [rsp]
 	add rsp, 16
-	mov [rbp - 16], rax
 	mov rax, [rbp - -24]
 	push rax
 	mov rax, [rbp - 32]
@@ -225,7 +223,6 @@ while_end_5:
 	call print_chr
 	mov rax, [rsp]
 	add rsp, 16
-	mov [rbp - 16], rax
 	; epilogue
 	add rsp, 32
 	pop rbp
