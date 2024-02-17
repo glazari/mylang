@@ -42,8 +42,12 @@ _start:
             self.generate_function(function, &prog.program_env, &prog.function_envs[i]);
         }
 
-        // TODO: uninitialized data section (global variables)
-        // TODO: initialized data section (global variables)
+        self.assembly.push_str("\n\nsection .data\n");
+        for (i, global) in prog.program_env.global_names.iter().enumerate() {
+            let value = &prog.program_env.global_values[i];
+            self.assembly.push_str(&format!("{} dq {}\n", global, value));
+        }
+        
     }
 
     fn add_asm(&mut self, s: &str) {
@@ -95,7 +99,7 @@ _start:
         }
     }
 
-    fn generate_asm_block(&mut self, asm: &Asm, _p_env: &ProgEnv, f_env: &FuncEnv) {
+    fn generate_asm_block(&mut self, asm: &Asm, p_env: &ProgEnv, f_env: &FuncEnv) {
         let mut line = String::new();
 
         for segment in &asm.segments {
@@ -104,8 +108,8 @@ _start:
                     line.push_str(s);
                 }
                 ASMSegment::Variable(var) => {
-                    let var_address = Self::get_var_address(var, f_env);
-                    line.push_str(&format!("[rbp - {}]", var_address));
+                    let var_address = Self::get_var_address(var, f_env, p_env);
+                    line.push_str(&var_address);
                 }
                 ASMSegment::Newline => {
                     self.add_asm(&line);
@@ -115,24 +119,29 @@ _start:
         }
     }
 
-    fn get_var_address(var_name: &str, f_env: &FuncEnv) -> i64 {
+    fn get_var_address(var_name: &str, f_env: &FuncEnv, p_env: &ProgEnv) -> String {
         let var_num = f_env.local_variables.iter().position(|x| *x == var_name);
         if let Some(var_num) = var_num {
-            return (var_num as i64 + 1) * 8;
+            let offset =  (var_num as i64 + 1) * 8;
+            return format!("[rbp - {}]", offset);
         }
         let param_num = f_env.function_params.iter().position(|x| *x == var_name);
         if let Some(param_num) = param_num {
             let num_rev = f_env.function_params.len() - param_num - 1;
             let const_offset = 24; // rbp, return address, return value
-            return -((num_rev as i64) * 8 + const_offset);
+            let offset = (num_rev as i64) * 8 + const_offset;
+            return format!("[rbp + {}]", offset);
         }
-        panic!("Variable not found: {}", var_name);
+        if let Some(_) = p_env.global_names.iter().position(|x| *x == var_name) {
+            return format!("[{}]", var_name);
+        }
+        panic!("Variable not found: {}, {:?}", var_name, p_env.global_names);
     }
 
     fn generate_assign_statement(&mut self, assign: &Assign, p_env: &ProgEnv, f_env: &FuncEnv) {
         self.generate_expression(&assign.value, p_env, f_env);
-        let var_address = Self::get_var_address(&assign.name, f_env);
-        self.add_asm(&format!("mov [rbp - {}], rax", var_address));
+        let var_address = Self::get_var_address(&assign.name, f_env, p_env);
+        self.add_asm(&format!("mov {}, rax", var_address));
     }
 
     fn generate_do_while_stmt(&mut self, do_while: &DoWhile, p_env: &ProgEnv, f_env: &FuncEnv) {
@@ -254,8 +263,8 @@ _start:
 
     fn generate_let_statement(&mut self, let_stmt: &Let, p_env: &ProgEnv, f_env: &FuncEnv) {
         self.generate_expression(&let_stmt.value, p_env, f_env);
-        let var_address = Self::get_var_address(&let_stmt.name, f_env);
-        self.add_asm(&format!("mov [rbp - {}], rax", var_address));
+        let var_address = Self::get_var_address(&let_stmt.name, f_env, p_env);
+        self.add_asm(&format!("mov {}, rax", var_address));
     }
 
     fn generate_expression(&mut self, exp: &Exp, p_env: &ProgEnv, f_env: &FuncEnv) {
@@ -264,8 +273,8 @@ _start:
                 self.add_asm(&format!("mov rax, {}", number));
             }
             Exp::Var(name) => {
-                let var_address = Self::get_var_address(name, f_env);
-                self.add_asm(&format!("mov rax, [rbp - {}]", var_address));
+                let var_address = Self::get_var_address(name, f_env, p_env);
+                self.add_asm(&format!("mov rax, {}", var_address));
             }
             Exp::BinOp(e1, op, e2) => {
                 self.generate_expression(e1, p_env, f_env);
@@ -401,7 +410,7 @@ mod tests {
             let expected_out_file = file.replace("_code.mylang", "_out.txt");
             let expected_output = std::fs::read_to_string(expected_out_file).expect("read failed");
             let output = String::from_utf8_lossy(&output.stdout);
-            assert_eq!(output, expected_output);
+            assert_eq!(output, expected_output, "file: {}", file);
 
             delete_file(&prog_name);
             delete_file(&format!("{}.asm", prog_name));

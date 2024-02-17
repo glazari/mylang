@@ -84,6 +84,7 @@ pub enum TokenType {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Keyword {
     Fn,
+    Global,
     If,
     Else,
     While,
@@ -104,6 +105,7 @@ fn keywordOrIdent(ident: &str) -> TokenType {
         "return" => TokenType::Keyword(Keyword::Return),
         "let" => TokenType::Keyword(Keyword::Let),
         "asm" => TokenType::Keyword(Keyword::ASM),
+        "global" => TokenType::Keyword(Keyword::Global),
         _ => TokenType::Ident(ident.to_string()),
     }
 }
@@ -260,6 +262,7 @@ impl TokenType {
             TokenType::Ident(s) => s,
             TokenType::Keyword(kw) => match kw {
                 Keyword::Fn => "fn",
+                Keyword::Global => "global",
                 Keyword::If => "if",
                 Keyword::Else => "else",
                 Keyword::While => "while",

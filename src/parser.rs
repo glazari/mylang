@@ -29,6 +29,7 @@ fn error_eof(expected: &str) -> ParseError {
 pub fn parse_program(tokens: Vec<Token>) -> Result<Program, ParseError> {
     let mut p = Program {
         functions: Vec::new(),
+        globals: Vec::new(),
     };
 
     let mut tokens = tokens.iter().peekable();
@@ -42,11 +43,43 @@ pub fn parse_program(tokens: Vec<Token>) -> Result<Program, ParseError> {
             break;
         }
 
-        let f = parse_function(&mut tokens)?;
-        p.functions.push(f);
+        let t = tokens.peek().ok_or(error_eof("function or EOF"))?;
+        match t.token_type {
+            TT::Keyword(KW::Fn) => {
+                let f = parse_function(&mut tokens)?;
+                p.functions.push(f);
+            }
+            TT::Keyword(KW::Global) => {
+                let g = parse_global(&mut tokens)?;
+                p.globals.push(g);
+            },
+            _ => return error("function or global", t),
+        }
     }
 
     Ok(p)
+}
+
+fn parse_global(ti: &mut TI<'_>) -> Result<Global, ParseError> {
+    expect(ti, TT::Keyword(KW::Global), "global")?;
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof("variable name"))?;
+    let name = match t.token_type {
+        TT::Ident(ref s) => s.clone(),
+        _ => return error("variable name", t),
+    };
+
+    skip_whitespace(ti);
+    expect(ti, TT::Assign, "=")?;
+
+    skip_whitespace(ti);
+    let value = parse_expression(ti, Precedence::Lowest)?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::Semicolon, ";")?;
+
+    Ok(Global { name, value })
 }
 
 fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
@@ -463,6 +496,7 @@ mod test {
     fn test_parse_program() {
         let tokens = tokenize("fn main() { let x = 42 + 1; }");
         let expected = Program {
+            globals: Vec::new(),
             functions: vec![Function {
                 name: "main".to_string(),
                 params: Vec::new(),

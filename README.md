@@ -145,15 +145,17 @@ I initially thought that making the expressions not nested would help, but it ma
 harder since we need to know if we are parsing a term or an expression. Also
 the distinction between expression and conditional I think will make parsing more complicated.
 
+globals are sintatically very similar to let statements, but their expressions will be checked at compile to be resolved as a constant.
+This means that globals can only be defined in terms of literals and other globals, not in terms of functions or other variables. 
+And they can not have circular dependencies.	
+
 ```
 
 program = { topLevel }
 
 topLevel = function | global
 
-global = "global" identifier type ";"
-
-type = "[" Int "]" "byte"
+global = "global" identifier "=" expression ";"
 
 function = "fn" identifier "(" [ parameters ] ")" [ "->" identifier ] block
 

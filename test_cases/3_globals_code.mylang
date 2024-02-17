@@ -10,6 +10,9 @@ fn main() {
   // can mutate globals
   x = 32;
   print_numberln(x);
+
+  // does not alter derived globals
+  print_numberln(z);
 }
 
 

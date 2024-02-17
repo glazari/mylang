@@ -7,7 +7,7 @@ pub type Op = Operator;
 #[derive(Debug, PartialEq)]
 pub struct Program {
      pub functions: Vec<Function>,
-     //constants: Vec<Constant>,
+     pub globals: Vec<Global>,
  }
 
 #[derive(Debug, PartialEq)]
@@ -56,6 +56,12 @@ pub struct DoWhile {
 
 #[derive(Debug, PartialEq)]
 pub struct Let {
+    pub name: String,
+    pub value: Expression,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Global {
     pub name: String,
     pub value: Expression,
 }

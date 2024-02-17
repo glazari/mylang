@@ -9,6 +9,8 @@ pub struct CheckedProgram {
 pub struct ProgEnv {
     function_names: Vec<String>,
     function_params: Vec<u32>,
+    pub global_values: Vec<i64>,
+    pub global_names: Vec<String>,
 }
 
 pub struct FuncEnv {
@@ -32,9 +34,15 @@ impl CheckedProgram {
             return Err("No main function found".to_string());
         }
 
+
+        let global_values = Self::resolve_global_values(&prog)?;
+        let global_names: Vec<String> = prog.globals.iter().map(|x| x.name.clone()).collect();
+
         let program_env = ProgEnv {
             function_names,
             function_params,
+            global_values,
+            global_names,
         };
 
         for function in &prog.functions {
@@ -44,6 +52,98 @@ impl CheckedProgram {
 
         Ok(CheckedProgram { prog, program_env, function_envs})
     }
+
+    fn resolve_global_values(prog: &Program) -> Result<Vec<i64>, String> {
+
+        let dependencies: Vec<Vec<usize>> = Self::find_global_dependencies(prog);
+
+        let mut state: Vec<usize> = vec![0; prog.globals.len()];
+        // 0 - not visited, 1 - visiting, 2 - visited
+        let mut stack = Vec::new();
+
+        for i in 0..prog.globals.len() {
+            if state[i] == 0 {
+                Self::global_dfs(i, &dependencies, &mut state, &mut stack);
+            }
+        }
+
+        let mut global_values = vec![0; prog.globals.len()]; // will be filled with the values of the globals
+        let names: Vec<String> = prog.globals.iter().map(|x| x.name.clone()).collect();
+        for i in 0..prog.globals.len() {
+            let global = &prog.globals[stack[i] as usize];
+            global_values[stack[i]] = Self::eval_global_expression(&global.value, &global_values, &names);
+        }
+
+        Ok(global_values)
+    }
+
+    fn eval_global_expression(exp: &Exp, global_values: &Vec<i64>, names: &Vec<String>) -> i64 {
+        match exp {
+            Exp::Int(n) => *n,
+            Exp::Var(var) => {
+                let index = names.iter().position(|x| x == var);
+                global_values[index.unwrap()]
+            }
+            Exp::BinOp(e1, op, e2) => {
+                let v1 = Self::eval_global_expression(e1, global_values, names);
+                let v2 = Self::eval_global_expression(e2, global_values, names);
+                match op {
+                    Op::Add => v1 + v2,
+                    Op::Sub => v1 - v2,
+                    Op::Mul => v1 * v2,
+                    Op::Div => v1 / v2,
+                    Op::Mod => v1 % v2,
+                    Op::Eq => panic!("Comparison operators not allowed in global expressions"),
+                    Op::Ne => panic!("Comparison operators not allowed in global expressions"),
+                    Op::LT => panic!("Comparison operators not allowed in global expressions"),
+                    Op::GT => panic!("Comparison operators not allowed in global expressions"),
+                }
+            }
+            Exp::Call(_) => {
+                panic!("Function calls not allowed in global expressions");
+            }
+        }
+    }
+
+    fn global_dfs(n: usize, deps: &Vec<Vec<usize>>, state: &mut Vec<usize>, stack: &mut Vec<usize>) {
+        state[n] = 1;
+        for dep in &deps[n] {
+            if state[*dep] == 0 {
+                Self::global_dfs(*dep, deps, state, stack);
+            } else if state[*dep] == 1 {
+                panic!("Cyclic dependency in global variables");
+            }
+        }
+        state[n] = 2;
+        stack.push(n);
+    }
+
+    fn find_global_dependencies(prog: &Program) -> Vec<Vec<usize>> {
+        let mut dependencies = Vec::with_capacity(prog.globals.len());
+        for global in &prog.globals {
+            dependencies.push(Self::vars_in_global_expression(&global.value, &prog.globals));
+        }
+        dependencies
+    }
+
+    fn vars_in_global_expression(exp: &Exp, globals: &Vec<Global>) -> Vec<usize> {
+        match exp {
+            Exp::Int(_) => Vec::new(), 
+            Exp::Var(var) => {
+                let index = globals.iter().position(|x| x.name == *var);
+                Vec::from([index.unwrap()])
+            }
+            Exp::BinOp(e1, _op, e2) => {
+                let mut vars = Self::vars_in_global_expression(e1, globals);
+                vars.append(&mut Self::vars_in_global_expression(e2, globals));
+                vars
+            }
+            Exp::Call(call) => {
+                panic!("Function calls not allowed in global expressions");
+            }
+        }
+    }
+
 
     fn check_function(function: &Function, prog_env: &ProgEnv) -> Result<FuncEnv, String> {
         let mut function_params = Vec::new();
@@ -150,6 +250,7 @@ impl CheckedProgram {
             Exp::Var(variable) => {
                 if !f_env.function_params.contains(&variable)
                     && !f_env.local_variables.contains(&variable)
+                    && !p_env.global_names.contains(&variable)
                 {
                     return Err(format!("Variable {} not found", variable));
                 }
