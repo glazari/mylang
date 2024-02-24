@@ -15,34 +15,564 @@ main:
 	mov rbp, rsp
 	sub rsp, 0
 	; body
-	mov rax, [x]
+	sub rsp, 8
+	call init
+	mov rax, [rsp]
+	add rsp, 8
+	mov rax, 123
 	push rax
 	sub rsp, 8
-	call print_numberln
+	call print_nln
 	mov rax, [rsp]
 	add rsp, 16
-	mov rax, [y]
+	mov rax, 1
 	push rax
 	sub rsp, 8
-	call print_numberln
+	call print_nln
 	mov rax, [rsp]
 	add rsp, 16
-	mov rax, [z]
+	mov rax, 10
 	push rax
 	sub rsp, 8
-	call print_numberln
+	call print_nln
 	mov rax, [rsp]
 	add rsp, 16
-	mov rax, 32
-	mov [x], rax
-	mov rax, [x]
+	mov rax, 0
 	push rax
 	sub rsp, 8
-	call print_numberln
+	call print_nln
 	mov rax, [rsp]
 	add rsp, 16
 	; epilogue
 	add rsp, 0
+	pop rbp
+	ret
+nl:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	mov rax, 10
+	push rax
+	sub rsp, 8
+	call print_chr
+	mov rax, [rsp]
+	add rsp, 16
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+init_brk:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	mov rax, 0
+	push rax
+	sub rsp, 8
+	call brk
+	mov rax, [rsp]
+	add rsp, 16
+	mov [current_brk], rax
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+malloc:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 16
+	; body
+	mov rax, [current_brk]
+	mov [rbp - 8], rax
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, [rbp + 24]
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 16], rax
+	mov rax, [rbp - 16]
+	push rax
+	sub rsp, 8
+	call brk
+	mov rax, [rsp]
+	add rsp, 16
+	mov [current_brk], rax
+if_condition_0:
+	mov rax, [current_brk]
+	push rax
+	mov rax, [rbp - 16]
+	pop rbx
+	cmp rbx, rax
+	je else_0
+if_body_0:
+	mov rax, 1
+	push rax
+	sub rsp, 8
+	call exit
+	mov rax, [rsp]
+	add rsp, 16
+	jmp end_0
+else_0:
+end_0:
+	mov rax, [rbp - 8]
+	mov [rbp + 16], rax
+	add rsp, 16
+	pop rbp
+	ret
+	; epilogue
+	add rsp, 16
+	pop rbp
+	ret
+init:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	sub rsp, 8
+	call init_brk
+	mov rax, [rsp]
+	add rsp, 8
+	sub rsp, 8
+	call init_print_nln
+	mov rax, [rsp]
+	add rsp, 8
+	sub rsp, 8
+	call init_num_to_string
+	mov rax, [rsp]
+	add rsp, 8
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+init_print_nln:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	mov rax, 1024
+	push rax
+	sub rsp, 8
+	call malloc
+	mov rax, [rsp]
+	add rsp, 16
+	mov [print_nln_bff], rax
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+print_nln:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 8
+	; body
+	mov rax, [rbp + 24]
+	push rax
+	mov rax, [print_nln_bff]
+	push rax
+	sub rsp, 8
+	call num_to_string
+	mov rax, [rsp]
+	add rsp, 24
+	mov [rbp - 8], rax
+	mov rax, 1
+	push rax
+	mov rax, [print_nln_bff]
+	push rax
+	mov rax, [rbp - 8]
+	push rax
+	sub rsp, 8
+	call write
+	mov rax, [rsp]
+	add rsp, 32
+	; epilogue
+	add rsp, 8
+	pop rbp
+	ret
+init_num_to_string:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	mov rax, 50
+	push rax
+	sub rsp, 8
+	call malloc
+	mov rax, [rsp]
+	add rsp, 16
+	mov [num_to_string_bff], rax
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+num_to_string:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 32
+	; body
+	mov rax, 0
+	mov [rbp - 8], rax
+	mov rax, [num_to_string_bff]
+	mov [rbp - 16], rax
+do_while_body_1:
+	mov rax, [rbp + 32]
+	push rax
+	mov rax, 10
+	mov rbx, rax
+	pop rax
+	cdq
+	div rbx
+	mov rax, rdx
+	mov [rbp - 8], rax
+	mov rax, [rbp + 32]
+	push rax
+	mov rax, 10
+	mov rbx, rax
+	pop rax
+	cdq
+	div rbx
+	mov [rbp + 32], rax
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 48
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 8], rax
+	mov rdx, [rbp - 8]
+	mov rax, [rbp - 16]
+	mov byte [rax], dl 
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 16], rax
+do_while_condition_1:
+	mov rax, [rbp + 32]
+	push rax
+	mov rax, 0
+	pop rbx
+	cmp rbx, rax
+	jg do_while_body_1
+do_while_end_1:
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, [num_to_string_bff]
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	mov [rbp - 24], rax
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	mov [rbp - 16], rax
+	mov rax, 0
+	mov [rbp - 32], rax
+while_condition_2:
+	mov rax, [rbp - 32]
+	push rax
+	mov rax, [rbp - 24]
+	pop rbx
+	cmp rbx, rax
+	jge while_end_2
+while_body_2:
+	mov rax, [rbp - 16]
+	mov byte dl, [rax]
+	mov rax, [rbp + 24] ; address points to a location that has the address
+	mov byte [rax], dl
+	mov rax, [rbp - 32]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 32], rax
+	mov rax, [rbp + 24]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp + 24], rax
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	mov [rbp - 16], rax
+	jmp while_condition_2
+while_end_2:
+	mov rax, [rbp + 24]
+	mov byte [rax], 10 ; add new line
+	mov rax, [rbp - 24]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 24], rax
+	mov rax, [rbp - 24]
+	mov [rbp + 16], rax
+	add rsp, 32
+	pop rbp
+	ret
+	; epilogue
+	add rsp, 32
+	pop rbp
+	ret
+ptr_get:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 8
+	; body
+	mov rax, 0
+	mov [rbp - 8], rax
+	mov rax, [rbp + 24]
+	mov rbx, [rax]
+	mov [rbp - 8], rbx
+	mov rax, [rbp - 8]
+	mov [rbp + 16], rax
+	add rsp, 8
+	pop rbp
+	ret
+	; epilogue
+	add rsp, 8
+	pop rbp
+	ret
+ptr_store:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	mov rax, [rbp + 24]
+	mov rbx, [rbp + 32] 
+	mov [rbx], rax
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+exit:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	mov rax, 60     
+	mov rdi, [rbp + 24]
+	syscall
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+brk:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 8
+	; body
+	mov rax, 0
+	mov [rbp - 8], rax
+	mov rax, 12 ; brk syscall
+	mov rdi, [rbp + 24]
+	syscall
+	mov [rbp - 8], rax ; store new program break
+	mov rax, [rbp - 8]
+	mov [rbp + 16], rax
+	add rsp, 8
+	pop rbp
+	ret
+	; epilogue
+	add rsp, 8
+	pop rbp
+	ret
+write:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 0
+	; body
+	mov rax, 1
+	mov rdi, [rbp + 40]
+	mov rsi, [rbp + 32]
+	mov rdx, [rbp + 24]
+	syscall
+	; epilogue
+	add rsp, 0
+	pop rbp
+	ret
+print_hexln:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 32
+	; body
+	mov rax, 0
+	mov [rbp - 8], rax
+	mov rax, [rbp + 24]
+	mov [rbp - 16], rax
+while_condition_3:
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, 0
+	pop rbx
+	cmp rbx, rax
+	jle while_end_3
+while_body_3:
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, 16
+	mov rbx, rax
+	pop rax
+	cdq
+	div rbx
+	mov [rbp - 16], rax
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 8], rax
+	jmp while_condition_3
+while_end_3:
+	mov rax, 0
+	mov [rbp - 24], rax
+	mov rax, 0
+	mov [rbp - 32], rax
+if_condition_4:
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 0
+	pop rbx
+	cmp rbx, rax
+	jne else_4
+if_body_4:
+	mov rax, 1
+	mov [rbp - 8], rax
+	jmp end_4
+else_4:
+end_4:
+	mov rax, 48
+	push rax
+	sub rsp, 8
+	call print_chr
+	mov rax, [rsp]
+	add rsp, 16
+	mov rax, 120
+	push rax
+	sub rsp, 8
+	call print_chr
+	mov rax, [rsp]
+	add rsp, 16
+while_condition_5:
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 0
+	pop rbx
+	cmp rbx, rax
+	jle while_end_5
+while_body_5:
+	mov rax, 16
+	push rax
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	push rax
+	sub rsp, 8
+	call pow
+	mov rax, [rsp]
+	add rsp, 24
+	mov [rbp - 32], rax
+	mov rax, [rbp + 24]
+	push rax
+	mov rax, [rbp - 32]
+	mov rbx, rax
+	pop rax
+	cdq
+	div rbx
+	mov [rbp - 24], rax
+if_condition_6:
+	mov rax, [rbp - 24]
+	push rax
+	mov rax, 10
+	pop rbx
+	cmp rbx, rax
+	jge else_6
+if_body_6:
+	mov rax, [rbp - 24]
+	push rax
+	mov rax, 48
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 24], rax
+	jmp end_6
+else_6:
+	mov rax, [rbp - 24]
+	push rax
+	mov rax, 10
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	push rax
+	mov rax, 97
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 24], rax
+end_6:
+	mov rax, [rbp - 24]
+	push rax
+	sub rsp, 8
+	call print_chr
+	mov rax, [rsp]
+	add rsp, 16
+	mov rax, [rbp + 24]
+	push rax
+	mov rax, [rbp - 32]
+	mov rbx, rax
+	pop rax
+	cdq
+	div rbx
+	mov rax, rdx
+	mov [rbp + 24], rax
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	mov [rbp - 8], rax
+	jmp while_condition_5
+while_end_5:
+	mov rax, 10
+	push rax
+	sub rsp, 8
+	call print_chr
+	mov rax, [rsp]
+	add rsp, 16
+	; epilogue
+	add rsp, 32
 	pop rbp
 	ret
 print_numberln:
@@ -55,14 +585,14 @@ print_numberln:
 	mov [rbp - 8], rax
 	mov rax, [rbp + 24]
 	mov [rbp - 16], rax
-while_condition_0:
+while_condition_7:
 	mov rax, [rbp - 16]
 	push rax
 	mov rax, 0
 	pop rbx
 	cmp rbx, rax
-	jle while_end_0
-while_body_0:
+	jle while_end_7
+while_body_7:
 	mov rax, [rbp - 16]
 	push rax
 	mov rax, 10
@@ -78,20 +608,33 @@ while_body_0:
 	pop rax
 	add rax, rbx
 	mov [rbp - 8], rax
-	jmp while_condition_0
-while_end_0:
+	jmp while_condition_7
+while_end_7:
 	mov rax, 0
 	mov [rbp - 24], rax
 	mov rax, 0
 	mov [rbp - 32], rax
-while_condition_1:
-	mov rax, [rbp + 24]
+if_condition_8:
+	mov rax, [rbp - 8]
 	push rax
 	mov rax, 0
 	pop rbx
 	cmp rbx, rax
-	jle while_end_1
-while_body_1:
+	jne else_8
+if_body_8:
+	mov rax, 1
+	mov [rbp - 8], rax
+	jmp end_8
+else_8:
+end_8:
+while_condition_9:
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 0
+	pop rbx
+	cmp rbx, rax
+	jle while_end_9
+while_body_9:
 	mov rax, 10
 	push rax
 	mov rax, [rbp - 8]
@@ -141,8 +684,8 @@ while_body_1:
 	pop rax
 	sub rax, rbx
 	mov [rbp - 8], rax
-	jmp while_condition_1
-while_end_1:
+	jmp while_condition_9
+while_end_9:
 	mov rax, 10
 	push rax
 	sub rsp, 8
@@ -161,14 +704,14 @@ pow:
 	; body
 	mov rax, 1
 	mov [rbp - 8], rax
-while_condition_2:
+while_condition_10:
 	mov rax, [rbp + 24]
 	push rax
 	mov rax, 0
 	pop rbx
 	cmp rbx, rax
-	jle while_end_2
-while_body_2:
+	jle while_end_10
+while_body_10:
 	mov rax, [rbp - 8]
 	push rax
 	mov rax, [rbp + 32]
@@ -183,8 +726,8 @@ while_body_2:
 	pop rax
 	sub rax, rbx
 	mov [rbp + 24], rax
-	jmp while_condition_2
-while_end_2:
+	jmp while_condition_10
+while_end_10:
 	mov rax, [rbp - 8]
 	mov [rbp + 16], rax
 	add rsp, 8
@@ -213,6 +756,6 @@ print_chr:
 
 
 section .data
-x dq 12
-y dq 59
-z dq 71
+current_brk dq 0
+print_nln_bff dq 0
+num_to_string_bff dq 0

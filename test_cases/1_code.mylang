@@ -23,9 +23,9 @@ fn main() {
 
 
   let count = 0;
-  while (count < 10) {
-    count = count + 1;
+  while (count < 11) {
     print_numberln(count);
+    count = count + 1;
   }
 }
 
@@ -39,6 +39,10 @@ fn print_numberln(num) {
   }
   let digit = 0;
   let base = 0;
+
+  if (num_size == 0) {
+    num_size = 1;
+  }
 
   while (num_size > 0) {
     base = pow(10, num_size-1);

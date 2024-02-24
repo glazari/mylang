@@ -172,13 +172,12 @@ _start:
                     Op::Eq => "je",
                     _ => panic!("unimplemented"),
                 };
-                self.add_asm(&format!("{} {}", jmp, end_label));
+                self.add_asm(&format!("{} {}", jmp, body_label));
             }
             _ => {
                 panic!("unimplemented");
             }
         }
-        self.add_asm(&format!("jmp {}", body_label));
         self.add_label(&end_label);
     }
 
