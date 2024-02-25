@@ -4,34 +4,41 @@
 The objective is to have a very simple language and compiler that generates linux x86_64 assembly to help me
 understand how compilers work.
 
+The language currently has the following features:
+- variables
+- while/doWhile/if-else control flow statements
+- expressions, fully recursive and with operator precedence
+- functions with parameters and return values
+- global variables
+- assembly escape (to allow for things that are not possible in the language, for example system calls)
+- Primitive checks:
+	- no repeated name declaration
+	- no circular dependencies in globals
+	- all name references are defined
+	- if/while conditions are "compare" expressions
 
-At the moment it is just a rust program that writes assembly to a file directly.
-I plan to write a couple of programs in assembly like this and start adding features that make it easier to write.
-This way I will be working my way backwards from assembly to a higher level language.
 
+It still has the following important limitations:
+- only 64 bit unsigned integers (type assumed, not declared)
+- no distinction between pointer and value types
+- no arrays (related to types)
+- no string literals (related to types and pointer types)
+- no structs (related to types)
+- no module system (especially useful to not repeat prelude functions like print, malloc, syscalls...)
+- varaible can be declared  only at the top level of a block
+- variable can be declared after it is used. (just confusing, not a real limitation)
+- no block scope.
 
-I added the following assembly routines:
-- print (prints to stdout)
-- num_to_string (converts a number to a string for printing, no dynamic memory allocation, just resuse same address)
-
-# Prime in assembly
-
-Added `my_primes.s` to calculate primes and print them out. It ran as fast as a c version.
-
-# Abstractions over assembly
-
-Added the concept of loops and if else statements to help handle the jumps and labels.
-First version is very simple, we have a global label counter so each new loop or if gets a number
-which is used to create the labels.
-The user still needs to know the assembly for the cmp and the jump type (jne, jg, jle...).
 
 # todo
-- Add test for current features (using  pring_number that I made)
-	- if, else, while, do while
-	- add, sub, mul, div, mod (with precedence)
-	- call functions (with paramaters and return values)
-- Add support for types (int, bool, string, pointer_types?)
-- Add global byte array for strings
+- Add support for simple types (signed-i64, u64, f64), all 64 bit to not deal with size.
+	- decide syntax (probably very similar to rust, but no type inference)
+	- decide structures to represent types
+	- type checking of expressions
+
+# ideas
+- write tcp primitives (echo server, http server)
+- write multithreaded program (mutex, channels)
 
 
 # Minimal language
@@ -44,9 +51,10 @@ A minimal language needs:
 	- local variables
 	- calling convention
 - if/else, while, doWhile
-- arithmetic operations (at first no nested expressions)
+- arithmetic operations
 - print to stdout (takes address)
-- a way of declaring fixed sized string (no dynamic memory allocation)
+	- This is delt with by having assembly escape to do the system calls
+- a way of declaring fixed sized string
 
 - arrays (fixed size)
 - structs
@@ -60,10 +68,6 @@ Aiming for simplicity, everything is passed on the stack, in the following order
 - parameters
 - local variables
 
-
-# ideas
-- write tcp primitives (echo server, http server)
-- write multithreaded program (mutex, channels)
 
 ## Learnings
 
@@ -205,4 +209,9 @@ arguments = expression { "," expression }
 
 assignment = identifier "=" expression ";"
 ```
+
+# Prime in assembly
+
+Added `my_primes.s` to calculate primes and print them out. It ran as fast as a c version.
+
 
