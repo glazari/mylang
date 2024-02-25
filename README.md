@@ -115,7 +115,7 @@ example
 ```
 // comments
 
-let a = 1; // declare a variable
+let a: u64 = 1; // declare a variable
 
 fn add(a, b) -> c {
 	c = a + b;
@@ -175,7 +175,9 @@ while = "while" "(" expression ")" block
 
 doWhile = "do" block "while" "(" expression ")" ";"
 
-let = "let" identifier "=" expression ";"
+let = "let" identifier ":" type "=" expression ";"
+
+type = "u64"
 
 asm = "asm" "{" { assembly } "}"
 

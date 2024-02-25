@@ -305,6 +305,16 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     };
 
     skip_whitespace(ti);
+    expect(ti, TT::Colon, ":")?;
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof("type"))?;
+    let ttype = match t.token_type {
+        TT::Ident(ref s) => s.clone(),
+        _ => return error("type", t),
+    };
+
+    skip_whitespace(ti);
     expect(ti, TT::Assign, "=")?;
 
     skip_whitespace(ti);
@@ -313,7 +323,7 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     skip_whitespace(ti);
     expect(ti, TT::Semicolon, ";")?;
 
-    Ok(Let { name, value })
+    Ok(Let { name, ttype, value })
 }
 
 fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError> {
@@ -494,7 +504,7 @@ mod test {
 
     #[test]
     fn test_parse_program() {
-        let tokens = tokenize("fn main() { let x = 42 + 1; }");
+        let tokens = tokenize("fn main() { let x: u64 = 42 + 1; }");
         let expected = Program {
             globals: Vec::new(),
             functions: vec![Function {
@@ -502,6 +512,7 @@ mod test {
                 params: Vec::new(),
                 body: vec![Stmt::Let(Let {
                     name: "x".to_string(),
+                    ttype: "u64".to_string(),
                     value: add(int(42), int(1)),
                 })],
             }],

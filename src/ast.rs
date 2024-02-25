@@ -57,6 +57,7 @@ pub struct DoWhile {
 #[derive(Debug, PartialEq)]
 pub struct Let {
     pub name: String,
+    pub ttype: String,
     pub value: Expression,
 }
 

@@ -13,8 +13,10 @@ main:
 	; prologue
 	push rbp
 	mov rbp, rsp
-	sub rsp, 0
+	sub rsp, 8
 	; body
+	mov rax, 5
+	mov [rbp - 8], rax
 	sub rsp, 8
 	call init
 	mov rax, [rsp]
@@ -43,24 +45,26 @@ main:
 	call print_nln
 	mov rax, [rsp]
 	add rsp, 16
-	; epilogue
-	add rsp, 0
-	pop rbp
-	ret
-nl:
-	; prologue
-	push rbp
-	mov rbp, rsp
-	sub rsp, 0
-	; body
-	mov rax, 10
+	mov rax, 0
 	push rax
 	sub rsp, 8
-	call print_chr
+	call print_nln
+	mov rax, [rsp]
+	add rsp, 16
+	mov rax, 10000
+	push rax
+	sub rsp, 8
+	call print_nln
+	mov rax, [rsp]
+	add rsp, 16
+	mov rax, 10000
+	push rax
+	sub rsp, 8
+	call print_hexln
 	mov rax, [rsp]
 	add rsp, 16
 	; epilogue
-	add rsp, 0
+	add rsp, 8
 	pop rbp
 	ret
 init_brk:
@@ -177,16 +181,62 @@ print_nln:
 	push rax
 	mov rax, [print_nln_bff]
 	push rax
+	mov rax, 10
+	push rax
 	sub rsp, 8
 	call num_to_string
 	mov rax, [rsp]
-	add rsp, 24
+	add rsp, 32
 	mov [rbp - 8], rax
 	mov rax, 1
 	push rax
 	mov rax, [print_nln_bff]
 	push rax
 	mov rax, [rbp - 8]
+	push rax
+	sub rsp, 8
+	call write
+	mov rax, [rsp]
+	add rsp, 32
+	; epilogue
+	add rsp, 8
+	pop rbp
+	ret
+print_hexln:
+	; prologue
+	push rbp
+	mov rbp, rsp
+	sub rsp, 8
+	; body
+	mov rax, [print_nln_bff]
+	mov dx, 0x7830 ; 0x
+	mov [rax], dx
+	mov rax, [rbp + 24]
+	push rax
+	mov rax, [print_nln_bff]
+	push rax
+	mov rax, 2
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	push rax
+	mov rax, 16
+	push rax
+	sub rsp, 8
+	call num_to_string
+	mov rax, [rsp]
+	add rsp, 32
+	mov [rbp - 8], rax
+	mov rax, 1
+	push rax
+	mov rax, [print_nln_bff]
+	push rax
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 2
+	mov rbx, rax
+	pop rax
+	add rax, rbx
 	push rax
 	sub rsp, 8
 	call write
@@ -224,23 +274,31 @@ num_to_string:
 	mov rax, [num_to_string_bff]
 	mov [rbp - 16], rax
 do_while_body_1:
-	mov rax, [rbp + 32]
+	mov rax, [rbp + 40]
 	push rax
-	mov rax, 10
+	mov rax, [rbp + 24]
 	mov rbx, rax
 	pop rax
 	cdq
 	div rbx
 	mov rax, rdx
 	mov [rbp - 8], rax
-	mov rax, [rbp + 32]
+	mov rax, [rbp + 40]
 	push rax
-	mov rax, 10
+	mov rax, [rbp + 24]
 	mov rbx, rax
 	pop rax
 	cdq
 	div rbx
-	mov [rbp + 32], rax
+	mov [rbp + 40], rax
+if_condition_2:
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 11
+	pop rbx
+	cmp rbx, rax
+	jge else_2
+if_body_2:
 	mov rax, [rbp - 8]
 	push rax
 	mov rax, 48
@@ -248,6 +306,21 @@ do_while_body_1:
 	pop rax
 	add rax, rbx
 	mov [rbp - 8], rax
+	jmp end_2
+else_2:
+	mov rax, [rbp - 8]
+	push rax
+	mov rax, 10
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	push rax
+	mov rax, 97
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 8], rax
+end_2:
 	mov rdx, [rbp - 8]
 	mov rax, [rbp - 16]
 	mov byte [rax], dl 
@@ -259,7 +332,7 @@ do_while_body_1:
 	add rax, rbx
 	mov [rbp - 16], rax
 do_while_condition_1:
-	mov rax, [rbp + 32]
+	mov rax, [rbp + 40]
 	push rax
 	mov rax, 0
 	pop rbx
@@ -282,17 +355,17 @@ do_while_end_1:
 	mov [rbp - 16], rax
 	mov rax, 0
 	mov [rbp - 32], rax
-while_condition_2:
+while_condition_3:
 	mov rax, [rbp - 32]
 	push rax
 	mov rax, [rbp - 24]
 	pop rbx
 	cmp rbx, rax
-	jge while_end_2
-while_body_2:
+	jge while_end_3
+while_body_3:
 	mov rax, [rbp - 16]
 	mov byte dl, [rax]
-	mov rax, [rbp + 24] ; address points to a location that has the address
+	mov rax, [rbp + 32] ; address points to a location that has the address
 	mov byte [rax], dl
 	mov rax, [rbp - 32]
 	push rax
@@ -301,13 +374,13 @@ while_body_2:
 	pop rax
 	add rax, rbx
 	mov [rbp - 32], rax
-	mov rax, [rbp + 24]
+	mov rax, [rbp + 32]
 	push rax
 	mov rax, 1
 	mov rbx, rax
 	pop rax
 	add rax, rbx
-	mov [rbp + 24], rax
+	mov [rbp + 32], rax
 	mov rax, [rbp - 16]
 	push rax
 	mov rax, 1
@@ -315,9 +388,9 @@ while_body_2:
 	pop rax
 	sub rax, rbx
 	mov [rbp - 16], rax
-	jmp while_condition_2
-while_end_2:
-	mov rax, [rbp + 24]
+	jmp while_condition_3
+while_end_3:
+	mov rax, [rbp + 32]
 	mov byte [rax], 10 ; add new line
 	mov rax, [rbp - 24]
 	push rax
@@ -412,342 +485,6 @@ write:
 	mov rdi, [rbp + 40]
 	mov rsi, [rbp + 32]
 	mov rdx, [rbp + 24]
-	syscall
-	; epilogue
-	add rsp, 0
-	pop rbp
-	ret
-print_hexln:
-	; prologue
-	push rbp
-	mov rbp, rsp
-	sub rsp, 32
-	; body
-	mov rax, 0
-	mov [rbp - 8], rax
-	mov rax, [rbp + 24]
-	mov [rbp - 16], rax
-while_condition_3:
-	mov rax, [rbp - 16]
-	push rax
-	mov rax, 0
-	pop rbx
-	cmp rbx, rax
-	jle while_end_3
-while_body_3:
-	mov rax, [rbp - 16]
-	push rax
-	mov rax, 16
-	mov rbx, rax
-	pop rax
-	cdq
-	div rbx
-	mov [rbp - 16], rax
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 1
-	mov rbx, rax
-	pop rax
-	add rax, rbx
-	mov [rbp - 8], rax
-	jmp while_condition_3
-while_end_3:
-	mov rax, 0
-	mov [rbp - 24], rax
-	mov rax, 0
-	mov [rbp - 32], rax
-if_condition_4:
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 0
-	pop rbx
-	cmp rbx, rax
-	jne else_4
-if_body_4:
-	mov rax, 1
-	mov [rbp - 8], rax
-	jmp end_4
-else_4:
-end_4:
-	mov rax, 48
-	push rax
-	sub rsp, 8
-	call print_chr
-	mov rax, [rsp]
-	add rsp, 16
-	mov rax, 120
-	push rax
-	sub rsp, 8
-	call print_chr
-	mov rax, [rsp]
-	add rsp, 16
-while_condition_5:
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 0
-	pop rbx
-	cmp rbx, rax
-	jle while_end_5
-while_body_5:
-	mov rax, 16
-	push rax
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 1
-	mov rbx, rax
-	pop rax
-	sub rax, rbx
-	push rax
-	sub rsp, 8
-	call pow
-	mov rax, [rsp]
-	add rsp, 24
-	mov [rbp - 32], rax
-	mov rax, [rbp + 24]
-	push rax
-	mov rax, [rbp - 32]
-	mov rbx, rax
-	pop rax
-	cdq
-	div rbx
-	mov [rbp - 24], rax
-if_condition_6:
-	mov rax, [rbp - 24]
-	push rax
-	mov rax, 10
-	pop rbx
-	cmp rbx, rax
-	jge else_6
-if_body_6:
-	mov rax, [rbp - 24]
-	push rax
-	mov rax, 48
-	mov rbx, rax
-	pop rax
-	add rax, rbx
-	mov [rbp - 24], rax
-	jmp end_6
-else_6:
-	mov rax, [rbp - 24]
-	push rax
-	mov rax, 10
-	mov rbx, rax
-	pop rax
-	sub rax, rbx
-	push rax
-	mov rax, 97
-	mov rbx, rax
-	pop rax
-	add rax, rbx
-	mov [rbp - 24], rax
-end_6:
-	mov rax, [rbp - 24]
-	push rax
-	sub rsp, 8
-	call print_chr
-	mov rax, [rsp]
-	add rsp, 16
-	mov rax, [rbp + 24]
-	push rax
-	mov rax, [rbp - 32]
-	mov rbx, rax
-	pop rax
-	cdq
-	div rbx
-	mov rax, rdx
-	mov [rbp + 24], rax
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 1
-	mov rbx, rax
-	pop rax
-	sub rax, rbx
-	mov [rbp - 8], rax
-	jmp while_condition_5
-while_end_5:
-	mov rax, 10
-	push rax
-	sub rsp, 8
-	call print_chr
-	mov rax, [rsp]
-	add rsp, 16
-	; epilogue
-	add rsp, 32
-	pop rbp
-	ret
-print_numberln:
-	; prologue
-	push rbp
-	mov rbp, rsp
-	sub rsp, 32
-	; body
-	mov rax, 0
-	mov [rbp - 8], rax
-	mov rax, [rbp + 24]
-	mov [rbp - 16], rax
-while_condition_7:
-	mov rax, [rbp - 16]
-	push rax
-	mov rax, 0
-	pop rbx
-	cmp rbx, rax
-	jle while_end_7
-while_body_7:
-	mov rax, [rbp - 16]
-	push rax
-	mov rax, 10
-	mov rbx, rax
-	pop rax
-	cdq
-	div rbx
-	mov [rbp - 16], rax
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 1
-	mov rbx, rax
-	pop rax
-	add rax, rbx
-	mov [rbp - 8], rax
-	jmp while_condition_7
-while_end_7:
-	mov rax, 0
-	mov [rbp - 24], rax
-	mov rax, 0
-	mov [rbp - 32], rax
-if_condition_8:
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 0
-	pop rbx
-	cmp rbx, rax
-	jne else_8
-if_body_8:
-	mov rax, 1
-	mov [rbp - 8], rax
-	jmp end_8
-else_8:
-end_8:
-while_condition_9:
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 0
-	pop rbx
-	cmp rbx, rax
-	jle while_end_9
-while_body_9:
-	mov rax, 10
-	push rax
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 1
-	mov rbx, rax
-	pop rax
-	sub rax, rbx
-	push rax
-	sub rsp, 8
-	call pow
-	mov rax, [rsp]
-	add rsp, 24
-	mov [rbp - 32], rax
-	mov rax, [rbp + 24]
-	push rax
-	mov rax, [rbp - 32]
-	mov rbx, rax
-	pop rax
-	cdq
-	div rbx
-	push rax
-	mov rax, 48
-	mov rbx, rax
-	pop rax
-	add rax, rbx
-	mov [rbp - 24], rax
-	mov rax, [rbp - 24]
-	push rax
-	sub rsp, 8
-	call print_chr
-	mov rax, [rsp]
-	add rsp, 16
-	mov rax, [rbp + 24]
-	push rax
-	mov rax, [rbp - 32]
-	mov rbx, rax
-	pop rax
-	cdq
-	div rbx
-	mov rax, rdx
-	mov [rbp + 24], rax
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, 1
-	mov rbx, rax
-	pop rax
-	sub rax, rbx
-	mov [rbp - 8], rax
-	jmp while_condition_9
-while_end_9:
-	mov rax, 10
-	push rax
-	sub rsp, 8
-	call print_chr
-	mov rax, [rsp]
-	add rsp, 16
-	; epilogue
-	add rsp, 32
-	pop rbp
-	ret
-pow:
-	; prologue
-	push rbp
-	mov rbp, rsp
-	sub rsp, 8
-	; body
-	mov rax, 1
-	mov [rbp - 8], rax
-while_condition_10:
-	mov rax, [rbp + 24]
-	push rax
-	mov rax, 0
-	pop rbx
-	cmp rbx, rax
-	jle while_end_10
-while_body_10:
-	mov rax, [rbp - 8]
-	push rax
-	mov rax, [rbp + 32]
-	mov rbx, rax
-	pop rax
-	mul rbx
-	mov [rbp - 8], rax
-	mov rax, [rbp + 24]
-	push rax
-	mov rax, 1
-	mov rbx, rax
-	pop rax
-	sub rax, rbx
-	mov [rbp + 24], rax
-	jmp while_condition_10
-while_end_10:
-	mov rax, [rbp - 8]
-	mov [rbp + 16], rax
-	add rsp, 8
-	pop rbp
-	ret
-	; epilogue
-	add rsp, 8
-	pop rbp
-	ret
-print_chr:
-	; prologue
-	push rbp
-	mov rbp, rsp
-	sub rsp, 0
-	; body
-	mov rsi, rbp
-	add rsi, 24 ; point to address of a
-	mov rdx, 1 ; length
-	mov rax, 1 ; write syscall
-	mov rdi, 1 ; stdout file handle
 	syscall
 	; epilogue
 	add rsp, 0

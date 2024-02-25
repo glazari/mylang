@@ -66,6 +66,7 @@ pub enum TokenType {
     ReturnArrow,
     Comma,
     Semicolon,
+    Colon,
     Assign,
     Eq,
     NotEq,
@@ -129,7 +130,7 @@ pub fn tokenize(input: &str) -> Vec<Token>{
                 let ident = tokenize_ident(&mut chars, &mut fi);
                 tokens.push(Token::new(ident, fi.len_diff(&start)));
             },
-            '(' | ')' | '{' | '}' | '[' | ']' | ',' | ';' | '=' | '+' | '-' | '*' | '/' | '%' | '<' | '>' | '!' => {
+            '(' | ')' | '{' | '}' | '[' | ']' | ',' | ';' | '=' | '+' | '-' | '*' | '/' | '%' | '<' | '>' | '!' | ':'  => {
                 let start = fi.clone();
                 let simbol = tokenize_simbol(&mut chars, &mut fi);
                 tokens.push(Token::new(simbol, fi.len_diff(&start)));
@@ -155,6 +156,7 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
         '[' => TokenType::LBracket,
         ']' => TokenType::RBracket,
         ';' => TokenType::Semicolon,
+        ':'=> TokenType::Colon,
         ',' => TokenType::Comma,
         '=' => {
             if let Some('=') = chars.peek() {
@@ -284,6 +286,7 @@ impl TokenType {
             TokenType::ReturnArrow => "->",
             TokenType::Comma => ",",
             TokenType::Semicolon => ";",
+            TokenType::Colon => ":",
             TokenType::Assign => "=",
             TokenType::Eq => "==",
             TokenType::NotEq => "!=",

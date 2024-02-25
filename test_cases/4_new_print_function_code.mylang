@@ -19,8 +19,8 @@ fn init_brk() {
 }
 
 fn malloc(num_bytes) {
-  let pointer = current_brk;
-  let expected_new = pointer + num_bytes;
+  let pointer: u64 = current_brk;
+  let expected_new: u64 = pointer + num_bytes;
   current_brk = brk(expected_new);
   if (current_brk != expected_new) {
     // allocation failed, exit program
@@ -41,7 +41,7 @@ fn init_print_nln() {
   print_nln_bff = malloc(1024);
 }
 fn print_nln(number) {
-  let len = num_to_string(number, print_nln_bff, 10);
+  let len: u64 = num_to_string(number, print_nln_bff, 10);
   write(1, print_nln_bff, len);
 }
 fn print_hexln(number) {
@@ -50,7 +50,7 @@ fn print_hexln(number) {
     mov dx, 0x7830 ; 0x
     mov [rax], dx
   }
-  let len = num_to_string(number, print_nln_bff + 2, 16);
+  let len: u64 = num_to_string(number, print_nln_bff + 2, 16);
   write(1, print_nln_bff, len + 2);
 }
 
@@ -60,8 +60,8 @@ fn init_num_to_string() {
   num_to_string_bff = malloc(50);
 }
 fn num_to_string(number, address, base) {
-  let digit = 0;
-  let tmp_add = num_to_string_bff;
+  let digit: u64 = 0;
+  let tmp_add: u64 = num_to_string_bff;
 
   do {
     digit = number % base;
@@ -81,10 +81,10 @@ fn num_to_string(number, address, base) {
     
   } while (number > 0);
 
-  let len = tmp_add - num_to_string_bff;
+  let len: u64 = tmp_add - num_to_string_bff;
   tmp_add = tmp_add - 1;
 
-  let i = 0;
+  let i: u64 = 0;
   while (i < len) {
     asm {
       mov rax, {tmp_add}
@@ -106,7 +106,7 @@ fn num_to_string(number, address, base) {
 }
 
 fn ptr_get(addr) {
-  let out = 0;
+  let out: u64 = 0;
   asm {
     mov rax, {addr}
     mov rbx, [rax]
@@ -136,7 +136,7 @@ fn exit(code) { // exits program with exit_code
 }
 
 fn brk(address) {
-  let new_brk = 0;
+  let new_brk: u64 = 0;
   asm {
     mov rax, 12 ; brk syscall
     mov rdi, {address}
