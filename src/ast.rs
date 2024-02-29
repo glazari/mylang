@@ -21,6 +21,7 @@ pub struct Function {
 #[derive(Debug, PartialEq)]
 pub struct Parameter {
     pub name: String,
+    pub ttype: String,
 }
 
 #[derive(Debug, PartialEq)]

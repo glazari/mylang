@@ -163,7 +163,7 @@ global = "global" identifier "=" expression ";"
 
 function = "fn" identifier "(" [ parameters ] ")" [ "->" identifier ] block
 
-parameters = identifier { "," identifier } 
+parameters = identifier ":" type { "," identifier ":" type } 
 
 block = "{" [ statement ] "}"
 

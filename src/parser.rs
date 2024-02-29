@@ -409,7 +409,7 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
         skip_whitespace(ti);
         let t = ti.next().ok_or(error_eof("parameter name or )"))?;
         let par = match t.token_type {
-            TT::Ident(ref s) => Parameter { name: s.clone() },
+            TT::Ident(ref s) => parse_param(ti, s.clone())?,
             TT::RParen => break,
             _ => return error("parameter name", t),
         };
@@ -424,6 +424,22 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     }
 
     Ok(params)
+}
+
+fn parse_param(ti: &mut TI<'_>, name: String) -> Result<Parameter, ParseError> {
+    skip_whitespace(ti);
+
+    expect(ti, TT::Colon, ":")?;
+
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof("type"))?;
+    let ttype = match t.token_type {
+        TT::Ident(ref s) => s.clone(),
+        _ => return error("type", t),
+    };
+
+    Ok(Parameter{ name, ttype })
+
 }
 
 fn expect(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<(), ParseError> {
@@ -619,17 +635,20 @@ mod test {
 
     #[test]
     fn test_parse_parameters() {
-        let input = "(x, y, z)";
+        let input = "(x: u64, y: u64, z: u64)";
         let tokens = tokenize(input);
         let expected = vec![
             Parameter {
                 name: "x".to_string(),
+                ttype: "u64".to_string(),
             },
             Parameter {
                 name: "y".to_string(),
+                ttype: "u64".to_string(),
             },
             Parameter {
                 name: "z".to_string(),
+                ttype: "u64".to_string(),
             },
         ];
 

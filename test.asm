@@ -13,14 +13,27 @@ main:
 	; prologue
 	push rbp
 	mov rbp, rsp
-	sub rsp, 8
+	sub rsp, 16
 	; body
-	mov rax, 5
-	mov [rbp - 8], rax
 	sub rsp, 8
 	call init
 	mov rax, [rsp]
 	add rsp, 8
+	mov rax, 5
+	mov [rbp - 8], rax
+	mov rax, 10
+	mov [rbp - 16], rax
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, [rbp - 8]
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	push rax
+	sub rsp, 8
+	call print_nln
+	mov rax, [rsp]
+	add rsp, 16
 	mov rax, 123
 	push rax
 	sub rsp, 8
@@ -64,7 +77,7 @@ main:
 	mov rax, [rsp]
 	add rsp, 16
 	; epilogue
-	add rsp, 8
+	add rsp, 16
 	pop rbp
 	ret
 init_brk:
