@@ -1,6 +1,6 @@
-global x = 7 + 5;
-global y = x + 35 + x;
-global z = y + x;
+global x: u64 = 7 + 5;
+global y: u64 = x + 35 + x;
+global z: u64 = y + x;
 
 fn main() -> u64 {
   print_numberln(x);

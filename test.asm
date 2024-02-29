@@ -506,6 +506,7 @@ write:
 
 
 section .data
+a dq 0
 current_brk dq 0
 print_nln_bff dq 0
 num_to_string_bff dq 0

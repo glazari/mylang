@@ -13,7 +13,7 @@ fn main() -> u64 {
 // prelude-like area, helper functions
 // --------------------------------------------------
 
-global current_brk = 0;
+global current_brk: u64 = 0;
 fn init_brk() -> u64 {
   current_brk = brk(0);
 }
@@ -36,7 +36,7 @@ fn init() -> u64 {
 }
 
 
-global print_nln_bff = 0;
+global print_nln_bff: u64 = 0;
 fn init_print_nln() -> u64 {
   print_nln_bff = malloc(1024);
 }
@@ -55,7 +55,7 @@ fn print_hexln(number: u64) -> u64 {
 }
 
 
-global num_to_string_bff = 0;
+global num_to_string_bff: u64 = 0;
 fn init_num_to_string() -> u64 {
   num_to_string_bff = malloc(50);
 }

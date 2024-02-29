@@ -71,6 +71,10 @@ fn parse_global(ti: &mut TI<'_>) -> Result<Global, ParseError> {
     };
 
     skip_whitespace(ti);
+    expect(ti, TT::Colon, ":")?;
+    let ttype = parse_type(ti)?;
+
+    skip_whitespace(ti);
     expect(ti, TT::Assign, "=")?;
 
     skip_whitespace(ti);
@@ -79,7 +83,7 @@ fn parse_global(ti: &mut TI<'_>) -> Result<Global, ParseError> {
     skip_whitespace(ti);
     expect(ti, TT::Semicolon, ";")?;
 
-    Ok(Global { name, value })
+    Ok(Global { name, value, ttype })
 }
 
 fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {

@@ -159,7 +159,7 @@ program = { topLevel }
 
 topLevel = function | global
 
-global = "global" identifier "=" expression ";"
+global = "global" identifier ":" type "=" expression ";"
 
 function = "fn" identifier "(" [ parameters ] ")" [ "->" type ] block
 

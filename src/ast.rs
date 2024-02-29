@@ -67,6 +67,7 @@ pub struct Let {
 pub struct Global {
     pub name: String,
     pub value: Expression,
+    pub ttype: String,
 }
 
 #[derive(Debug, PartialEq)]
