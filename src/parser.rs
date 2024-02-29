@@ -285,11 +285,11 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     Ok(Let { name, ttype, value })
 }
 
-fn parse_type(ti: &mut TI<'_>) -> Result<String, ParseError> {
+fn parse_type(ti: &mut TI<'_>) -> Result<Type_, ParseError> {
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("type"))?;
     let ttype = match t.token_type {
-        TT::Ident(ref s) => s.clone(),
+        TT::Keyword(KW::U64) => Type_::U64,
         _ => return error("type", t),
     };
     Ok(ttype)
@@ -494,10 +494,10 @@ mod test {
                 params: Vec::new(),
                 body: vec![Stmt::Let(Let {
                     name: "x".to_string(),
-                    ttype: "u64".to_string(),
+                    ttype: Type_::U64,
                     value: add(int(42), int(1)),
                 })],
-                ret_type: "u64".to_string(),
+                ret_type: Type_::U64,
             }],
         };
 
@@ -607,15 +607,15 @@ mod test {
         let expected = vec![
             Parameter {
                 name: "x".to_string(),
-                ttype: "u64".to_string(),
+                ttype: Type_::U64,
             },
             Parameter {
                 name: "y".to_string(),
-                ttype: "u64".to_string(),
+                ttype: Type_::U64,
             },
             Parameter {
                 name: "z".to_string(),
-                ttype: "u64".to_string(),
+                ttype: Type_::U64,
             },
         ];
 

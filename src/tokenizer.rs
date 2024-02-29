@@ -93,21 +93,26 @@ pub enum Keyword {
     Return,
     Let,
     ASM,
+
+    // primitive types
+    U64
 }
 
-// keywords
-fn keywordOrIdent(ident: &str) -> TokenType {
+fn keyword_or_ident(ident: &str) -> TokenType {
     match ident {
-        "fn" => TokenType::Keyword(Keyword::Fn),
-        "if" => TokenType::Keyword(Keyword::If),
-        "else" => TokenType::Keyword(Keyword::Else),
-        "while" => TokenType::Keyword(Keyword::While),
-        "do" => TokenType::Keyword(Keyword::Do),
-        "return" => TokenType::Keyword(Keyword::Return),
-        "let" => TokenType::Keyword(Keyword::Let),
-        "asm" => TokenType::Keyword(Keyword::ASM),
-        "global" => TokenType::Keyword(Keyword::Global),
-        _ => TokenType::Ident(ident.to_string()),
+        // keywords
+        "fn" => TT::Keyword(KW::Fn),
+        "if" => TT::Keyword(KW::If),
+        "else" => TT::Keyword(KW::Else),
+        "while" => TT::Keyword(KW::While),
+        "do" => TT::Keyword(KW::Do),
+        "return" => TT::Keyword(KW::Return),
+        "let" => TT::Keyword(KW::Let),
+        "asm" => TT::Keyword(KW::ASM),
+        "global" => TT::Keyword(KW::Global),
+        // primitive types
+        "u64" => TT::Keyword(KW::U64),
+        _ => TT::Ident(ident.to_string()),
     }
 }
 
@@ -241,7 +246,7 @@ fn tokenize_ident(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
             _ => break,
         }
     }
-    keywordOrIdent(&ident)
+    keyword_or_ident(&ident)
 }
 
 fn tokenize_whitespace(chars: &mut Peekable<Chars>, fi: &mut FileInfo, tokens: &mut Vec<Token>) {
@@ -280,6 +285,7 @@ impl TokenType {
                 Keyword::Return => "return",
                 Keyword::Let => "let",
                 Keyword::ASM => "asm",
+                Keyword::U64 => "u64",
             },
             TokenType::Int(i) => {
                 tmp = i.to_string(); 

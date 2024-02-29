@@ -15,14 +15,14 @@ pub struct Function {
     pub name: String,
     pub params: Vec<Parameter>,
     pub body: Vec<Statement>,
-    pub ret_type: String,
+    pub ret_type: Type_,
 }
 
 
 #[derive(Debug, PartialEq)]
 pub struct Parameter {
     pub name: String,
-    pub ttype: String,
+    pub ttype: Type_,
 }
 
 #[derive(Debug, PartialEq)]
@@ -59,7 +59,7 @@ pub struct DoWhile {
 #[derive(Debug, PartialEq)]
 pub struct Let {
     pub name: String,
-    pub ttype: String,
+    pub ttype: Type_,
     pub value: Expression,
 }
 
@@ -67,7 +67,7 @@ pub struct Let {
 pub struct Global {
     pub name: String,
     pub value: Expression,
-    pub ttype: String,
+    pub ttype: Type_,
 }
 
 #[derive(Debug, PartialEq)]
