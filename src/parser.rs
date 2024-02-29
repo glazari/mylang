@@ -70,19 +70,13 @@ fn parse_global(ti: &mut TI<'_>) -> Result<Global, ParseError> {
         _ => return error("variable name", t),
     };
 
-    skip_whitespace(ti);
-    expect(ti, TT::Colon, ":")?;
+    expect_sk_ws(ti, TT::Colon, ":")?;
     let ttype = parse_type(ti)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::Assign, "=")?;
-
-    skip_whitespace(ti);
+    expect_sk_ws(ti, TT::Assign, "=")?;
     let value = parse_expression(ti, Precedence::Lowest)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::Semicolon, ";")?;
-
+    expect_sk_ws(ti, TT::Semicolon, ";")?;
     Ok(Global { name, value, ttype })
 }
 
@@ -96,25 +90,19 @@ fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
         _ => return error("function name", t),
     };
 
-    skip_whitespace(ti);
     let params = parse_params(ti)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::ReturnArrow, "->")?;
-
+    expect_sk_ws(ti, TT::ReturnArrow, "->")?;
     let ret_type = parse_type(ti)?;
 
-
-    skip_whitespace(ti);
     let body = parse_block(ti)?;
-
 
     Ok(Function { name, params, body, ret_type })
 }
 
 fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
     let mut stmts = Vec::new();
-    expect(ti, TT::LBrace, "{")?;
+    expect_sk_ws(ti, TT::LBrace, "{")?;
 
     loop {
         skip_whitespace(ti);
@@ -139,8 +127,7 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
 
 fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
     expect(ti, TT::Keyword(KW::ASM), "asm")?;
-    skip_whitespace(ti);
-    expect(ti, TT::LBrace, "{")?;
+    expect_sk_ws(ti, TT::LBrace, "{")?;
     let mut segments = Vec::new();
 
     skip_whitespace(ti);
@@ -167,8 +154,7 @@ fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
                     _ => return error("variable", t),
                 };
                 segments.push(ASMSegment::Variable(name));
-                skip_whitespace(ti);
-                expect(ti, TT::RBrace, "}")?;
+                expect_sk_ws(ti, TT::RBrace, "}")?;
             }
             TT::Newline => {
                 if !segment.is_empty() {
@@ -185,49 +171,34 @@ fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
         }
     }
 
-    skip_whitespace(ti);
-
-    expect(ti, TT::RBrace, "}")?;
+    expect_sk_ws(ti, TT::RBrace, "}")?;
     Ok(Asm { segments })
 }
 
 fn parse_do_while(ti: &mut TI<'_>) -> Result<DoWhile, ParseError> {
     expect(ti, TT::Keyword(KW::Do), "do")?;
 
-    skip_whitespace(ti);
     let body = parse_block(ti)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::Keyword(KW::While), "while")?;
+    expect_sk_ws(ti, TT::Keyword(KW::While), "while")?;
+    expect_sk_ws(ti, TT::LParen, "(")?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::LParen, "(")?;
-
-    skip_whitespace(ti);
     let condition = parse_expression(ti, Precedence::Lowest)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::RParen, ")")?;
-
-    skip_whitespace(ti);
-    expect(ti, TT::Semicolon, ";")?;
+    expect_sk_ws(ti, TT::RParen, ")")?;
+    expect_sk_ws(ti, TT::Semicolon, ";")?;
 
     Ok(DoWhile { condition, body })
 }
 
 fn parse_while(ti: &mut TI<'_>) -> Result<While, ParseError> {
     expect(ti, TT::Keyword(KW::While), "while")?;
+    expect_sk_ws(ti, TT::LParen, "(")?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::LParen, "(")?;
-
-    skip_whitespace(ti);
     let condition = parse_expression(ti, Precedence::Lowest)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::RParen, ")")?;
+    expect_sk_ws(ti, TT::RParen, ")")?;
 
-    skip_whitespace(ti);
     let body = parse_block(ti)?;
 
     Ok(While { condition, body })
@@ -235,17 +206,12 @@ fn parse_while(ti: &mut TI<'_>) -> Result<While, ParseError> {
 
 fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
     expect(ti, TT::Keyword(KW::If), "if")?;
+    expect_sk_ws(ti, TT::LParen, "(")?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::LParen, "(")?;
-
-    skip_whitespace(ti);
     let condition = parse_expression(ti, Precedence::Lowest)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::RParen, ")")?;
+    expect_sk_ws(ti, TT::RParen, ")")?;
 
-    skip_whitespace(ti);
     let body = parse_block(ti)?;
 
     let mut else_body = Vec::new();
@@ -254,7 +220,6 @@ fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
     if let Some(t) = ti.peek() {
         if t.token_type == TT::Keyword(KW::Else) {
             ti.next();
-            skip_whitespace(ti);
             else_body = parse_block(ti)?;
         }
     }
@@ -269,12 +234,9 @@ fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
 fn parse_return(ti: &mut TI<'_>) -> Result<Return, ParseError> {
     expect(ti, TT::Keyword(KW::Return), "return")?;
 
-    skip_whitespace(ti);
     let value = parse_expression(ti, Precedence::Lowest)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::Semicolon, ";")?;
-
+    expect_sk_ws(ti, TT::Semicolon, ";")?;
     Ok(Return { value })
 }
 
@@ -290,16 +252,13 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
     match t.token_type {
         TT::Assign => {
             ti.next();
-            skip_whitespace(ti);
             let value = parse_expression(ti, Precedence::Lowest)?;
-            skip_whitespace(ti);
-            expect(ti, TT::Semicolon, ";")?;
+            expect_sk_ws(ti, TT::Semicolon, ";")?;
             Ok(Stmt::Assign(Assign { name, value }))
         }
         TT::LParen => {
             let call = parse_call(ti, name)?;
-            skip_whitespace(ti);
-            expect(ti, TT::Semicolon, ";")?;
+            expect_sk_ws(ti, TT::Semicolon, ";")?;
             Ok(Stmt::Call(call))
         }
         _ => error("assignment or call", t),
@@ -316,20 +275,13 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
         _ => return error("identifier", t),
     };
 
-    skip_whitespace(ti);
-    expect(ti, TT::Colon, ":")?;
-
+    expect_sk_ws(ti, TT::Colon, ":")?;
     let ttype = parse_type(ti)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::Assign, "=")?;
-
-    skip_whitespace(ti);
+    expect_sk_ws(ti, TT::Assign, "=")?;
     let value = parse_expression(ti, Precedence::Lowest)?;
 
-    skip_whitespace(ti);
-    expect(ti, TT::Semicolon, ";")?;
-
+    expect_sk_ws(ti, TT::Semicolon, ";")?;
     Ok(Let { name, ttype, value })
 }
 
@@ -419,8 +371,7 @@ fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
 
 fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     let mut params = Vec::new();
-    // starts with (
-    expect(ti, TT::LParen, "(")?;
+    expect_sk_ws(ti, TT::LParen, "(")?;
 
     loop {
         skip_whitespace(ti);
@@ -444,8 +395,7 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
 }
 
 fn parse_param(ti: &mut TI<'_>, name: String) -> Result<Parameter, ParseError> {
-    skip_whitespace(ti);
-    expect(ti, TT::Colon, ":")?;
+    expect_sk_ws(ti, TT::Colon, ":")?;
 
     let ttype = parse_type(ti)?;
 
@@ -459,6 +409,11 @@ fn expect(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<(), ParseError> {
         return error(msg, t);
     }
     Ok(())
+}
+
+fn expect_sk_ws(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<(), ParseError> {
+    skip_whitespace(ti);
+    expect(ti, expected, msg)
 }
 
 fn skip_whitespace(ti: &mut TI<'_>) {
