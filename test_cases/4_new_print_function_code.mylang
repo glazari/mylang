@@ -1,4 +1,4 @@
-fn main() {
+fn main() -> u64 {
   init(); 
   print_nln(123);
   print_nln(1);
@@ -14,11 +14,11 @@ fn main() {
 // --------------------------------------------------
 
 global current_brk = 0;
-fn init_brk() {
+fn init_brk() -> u64 {
   current_brk = brk(0);
 }
 
-fn malloc(num_bytes: u64) {
+fn malloc(num_bytes: u64) -> u64 {
   let pointer: u64 = current_brk;
   let expected_new: u64 = pointer + num_bytes;
   current_brk = brk(expected_new);
@@ -29,7 +29,7 @@ fn malloc(num_bytes: u64) {
   return pointer;
 }
 
-fn init() {
+fn init() -> u64 {
   init_brk();
   init_print_nln();
   init_num_to_string();
@@ -37,14 +37,14 @@ fn init() {
 
 
 global print_nln_bff = 0;
-fn init_print_nln() {
+fn init_print_nln() -> u64 {
   print_nln_bff = malloc(1024);
 }
-fn print_nln(number: u64) {
+fn print_nln(number: u64) -> u64 {
   let len: u64 = num_to_string(number, print_nln_bff, 10);
   write(1, print_nln_bff, len);
 }
-fn print_hexln(number: u64) {
+fn print_hexln(number: u64) -> u64 {
   asm {
     mov rax, {print_nln_bff}
     mov dx, 0x7830 ; 0x
@@ -56,10 +56,10 @@ fn print_hexln(number: u64) {
 
 
 global num_to_string_bff = 0;
-fn init_num_to_string() {
+fn init_num_to_string() -> u64 {
   num_to_string_bff = malloc(50);
 }
-fn num_to_string(number: u64, address: u64, base: u64) {
+fn num_to_string(number: u64, address: u64, base: u64) -> u64 {
   let digit: u64 = 0;
   let tmp_add: u64 = num_to_string_bff;
 
@@ -105,7 +105,7 @@ fn num_to_string(number: u64, address: u64, base: u64) {
   return len;
 }
 
-fn ptr_get(addr: u64) {
+fn ptr_get(addr: u64) -> u64 {
   let out: u64 = 0;
   asm {
     mov rax, {addr}
@@ -115,7 +115,7 @@ fn ptr_get(addr: u64) {
   return out;
 }
 
-fn ptr_store(addr: u64, val: u64) {
+fn ptr_store(addr: u64, val: u64) -> u64 {
   asm {
     mov rax, {val}
     mov rbx, {addr} 
@@ -127,7 +127,7 @@ fn ptr_store(addr: u64, val: u64) {
 //  System calls
 // --------------------------------------------------
 
-fn exit(code: u64) { // exits program with exit_code
+fn exit(code: u64) -> u64 { // exits program with exit_code
   asm {
     mov rax, 60     
     mov rdi, {code}
@@ -135,7 +135,7 @@ fn exit(code: u64) { // exits program with exit_code
   }
 }
 
-fn brk(address: u64) {
+fn brk(address: u64) -> u64 {
   let new_brk: u64 = 0;
   asm {
     mov rax, 12 ; brk syscall
@@ -146,7 +146,7 @@ fn brk(address: u64) {
   return new_brk;
 }
 
-fn write(fd: u64, msg_addr: u64, len: u64) {
+fn write(fd: u64, msg_addr: u64, len: u64) -> u64 {
   asm {
     mov rax, 1
     mov rdi, {fd}

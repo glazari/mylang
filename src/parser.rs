@@ -94,10 +94,18 @@ fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
 
     skip_whitespace(ti);
     let params = parse_params(ti)?;
+
+    skip_whitespace(ti);
+    expect(ti, TT::ReturnArrow, "->")?;
+
+    let ret_type = parse_type(ti)?;
+
+
     skip_whitespace(ti);
     let body = parse_block(ti)?;
 
-    Ok(Function { name, params, body })
+
+    Ok(Function { name, params, body, ret_type })
 }
 
 fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
@@ -307,12 +315,7 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     skip_whitespace(ti);
     expect(ti, TT::Colon, ":")?;
 
-    skip_whitespace(ti);
-    let t = ti.next().ok_or(error_eof("type"))?;
-    let ttype = match t.token_type {
-        TT::Ident(ref s) => s.clone(),
-        _ => return error("type", t),
-    };
+    let ttype = parse_type(ti)?;
 
     skip_whitespace(ti);
     expect(ti, TT::Assign, "=")?;
@@ -324,6 +327,16 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     expect(ti, TT::Semicolon, ";")?;
 
     Ok(Let { name, ttype, value })
+}
+
+fn parse_type(ti: &mut TI<'_>) -> Result<String, ParseError> {
+    skip_whitespace(ti);
+    let t = ti.next().ok_or(error_eof("type"))?;
+    let ttype = match t.token_type {
+        TT::Ident(ref s) => s.clone(),
+        _ => return error("type", t),
+    };
+    Ok(ttype)
 }
 
 fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError> {
@@ -428,15 +441,9 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
 
 fn parse_param(ti: &mut TI<'_>, name: String) -> Result<Parameter, ParseError> {
     skip_whitespace(ti);
-
     expect(ti, TT::Colon, ":")?;
 
-    skip_whitespace(ti);
-    let t = ti.next().ok_or(error_eof("type"))?;
-    let ttype = match t.token_type {
-        TT::Ident(ref s) => s.clone(),
-        _ => return error("type", t),
-    };
+    let ttype = parse_type(ti)?;
 
     Ok(Parameter{ name, ttype })
 
@@ -520,7 +527,7 @@ mod test {
 
     #[test]
     fn test_parse_program() {
-        let tokens = tokenize("fn main() { let x: u64 = 42 + 1; }");
+        let tokens = tokenize("fn main() -> u64 { let x: u64 = 42 + 1; }");
         let expected = Program {
             globals: Vec::new(),
             functions: vec![Function {
@@ -531,6 +538,7 @@ mod test {
                     ttype: "u64".to_string(),
                     value: add(int(42), int(1)),
                 })],
+                ret_type: "u64".to_string(),
             }],
         };
 

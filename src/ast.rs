@@ -15,6 +15,7 @@ pub struct Function {
     pub name: String,
     pub params: Vec<Parameter>,
     pub body: Vec<Statement>,
+    pub ret_type: String,
 }
 
 
@@ -110,6 +111,11 @@ pub enum Operator {
     Ne,
     LT,
     GT,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Type_ {
+    U64
 }
 
 #[derive(Debug, PartialEq)]

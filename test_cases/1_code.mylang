@@ -1,4 +1,4 @@
-fn main() {
+fn main() -> u64 {
 	// Testing basic expression priority
 	print_numberln(1 + 2 + 4);
 
@@ -30,7 +30,7 @@ fn main() {
 }
 
 
-fn print_numberln(num: u64) {
+fn print_numberln(num: u64) -> u64 {
   let num_size: u64 = 0;
   let cp_num: u64 = num;
   while (cp_num > 0) {
@@ -54,7 +54,7 @@ fn print_numberln(num: u64) {
   print_chr(10);
 }
 
-fn pow(base: u64, exp: u64) {
+fn pow(base: u64, exp: u64) -> u64 {
   let prod: u64 = 1;
   while (exp > 0) {
     prod = prod * base;
@@ -63,7 +63,7 @@ fn pow(base: u64, exp: u64) {
   return prod;
 }
 
-fn print_chr(a: u64) {
+fn print_chr(a: u64) -> u64 {
   asm {
     mov rsi, rbp
     add rsi, 24 ; point to address of a

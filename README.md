@@ -161,7 +161,7 @@ topLevel = function | global
 
 global = "global" identifier "=" expression ";"
 
-function = "fn" identifier "(" [ parameters ] ")" [ "->" identifier ] block
+function = "fn" identifier "(" [ parameters ] ")" [ "->" type ] block
 
 parameters = identifier ":" type { "," identifier ":" type } 
 

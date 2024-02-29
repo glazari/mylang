@@ -1,4 +1,4 @@
-fn main() {
+fn main() -> u64 {
   let num: u64 = 2;
   let p: u64 = 0;
   while (num < 200) {
@@ -10,7 +10,7 @@ fn main() {
 }
 
 
-fn is_prime(num: u64) {
+fn is_prime(num: u64) -> u64 {
   let i: u64 = 2;
   while (i < num) {
     if (num % i == 0) {
@@ -21,7 +21,7 @@ fn is_prime(num: u64) {
   return 1;
 }
 
-fn print_numberln(num: u64) {
+fn print_numberln(num: u64) -> u64 {
   let num_size: u64 = 0;
   let cp_num: u64 = num;
   while (cp_num > 0) {
@@ -41,7 +41,7 @@ fn print_numberln(num: u64) {
   print_chr(10);
 }
 
-fn pow(base: u64, exp: u64) {
+fn pow(base: u64, exp: u64) -> u64 {
   let prod: u64 = 1;
   while (exp > 0) {
     prod = prod * base;
@@ -50,7 +50,7 @@ fn pow(base: u64, exp: u64) {
   return prod;
 }
 
-fn print_chr(a: u64) {
+fn print_chr(a: u64) -> u64 {
   asm {
     mov rsi, rbp
     add rsi, 24 ; point to address of a

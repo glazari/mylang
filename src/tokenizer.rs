@@ -177,7 +177,15 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
             }
         },
         '+' => TokenType::Plus,
-        '-' => TokenType::Minus,
+        '-' => {
+            if let Some('>') = chars.peek() {
+                chars.next();
+                fi.col_inc();
+                TokenType::ReturnArrow
+            } else {
+                TokenType::Minus
+            }
+        },
         '*' => TokenType::Asterisk,
         '/' => {
             if let Some('/') = chars.peek() {
