@@ -95,7 +95,7 @@ pub struct Assign {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
-    Int(i64),
+    U64(i64),
     Var(String),
     BinOp(Box<Expression>, Operator, Box<Expression>),
     Call(Call),
@@ -114,7 +114,7 @@ pub enum Operator {
     GT,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Type_ {
     U64
 }

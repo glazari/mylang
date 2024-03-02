@@ -43,9 +43,9 @@ _start:
         }
 
         self.assembly.push_str("\n\nsection .data\n");
-        for (i, global) in prog.program_env.global_names.iter().enumerate() {
+        for (i, global) in prog.program_env.globals_def.iter().enumerate() {
             let value = &prog.program_env.global_values[i];
-            self.assembly.push_str(&format!("{} dq {}\n", global, value));
+            self.assembly.push_str(&format!("{} dq {}\n", global.name, value));
         }
         
     }
@@ -120,22 +120,22 @@ _start:
     }
 
     fn get_var_address(var_name: &str, f_env: &FuncEnv, p_env: &ProgEnv) -> String {
-        let var_num = f_env.local_variables.iter().position(|x| *x == var_name);
+        let var_num = f_env.get_local_pos(var_name);
         if let Some(var_num) = var_num {
             let offset =  (var_num as i64 + 1) * 8;
             return format!("[rbp - {}]", offset);
         }
-        let param_num = f_env.function_params.iter().position(|x| *x == var_name);
+        let param_num = f_env.get_param_pos(var_name);
         if let Some(param_num) = param_num {
             let num_rev = f_env.function_params.len() - param_num - 1;
             let const_offset = 24; // rbp, return address, return value
             let offset = (num_rev as i64) * 8 + const_offset;
             return format!("[rbp + {}]", offset);
         }
-        if let Some(_) = p_env.global_names.iter().position(|x| *x == var_name) {
+        if let Some(_) = p_env.get_global_def(var_name) {
             return format!("[{}]", var_name);
         }
-        panic!("Variable not found: {}, {:?}", var_name, p_env.global_names);
+        panic!("Variable not found: {}, {:?}", var_name, p_env.globals_def);
     }
 
     fn generate_assign_statement(&mut self, assign: &Assign, p_env: &ProgEnv, f_env: &FuncEnv) {
@@ -268,7 +268,7 @@ _start:
 
     fn generate_expression(&mut self, exp: &Exp, p_env: &ProgEnv, f_env: &FuncEnv) {
         match exp {
-            Exp::Int(number) => {
+            Exp::U64(number) => {
                 self.add_asm(&format!("mov rax, {}", number));
             }
             Exp::Var(name) => {

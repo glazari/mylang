@@ -31,6 +31,8 @@ It still has the following important limitations:
 
 
 # todo
+- Add type checking for just u64
+- improve type checking error messages (propagate file info)
 - Add support for simple types (signed-i64, u64, f64), all 64 bit to not deal with size.
 	- decide syntax (probably very similar to rust, but no type inference)
 	- decide structures to represent types

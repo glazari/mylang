@@ -299,7 +299,7 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("expression"))?;
     let mut exp = match t.token_type {
-        TT::Int(n) => Exp::Int(n),
+        TT::Int(n) => Exp::U64(n),
         TT::Ident(ref s) => parse_ident_start_expression(ti, s.clone())?,
         _ => return error("expression", t),
     };
@@ -514,7 +514,7 @@ mod test {
         binop(x, Op::Sub, y)
     }
     fn int(n: i64) -> Exp {
-        Exp::Int(n)
+        Exp::U64(n)
     }
     fn mul(x: Exp, y: Exp) -> Exp {
         binop(x, Op::Mul, y)

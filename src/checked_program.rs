@@ -7,42 +7,64 @@ pub struct CheckedProgram {
 }
 
 pub struct ProgEnv {
-    function_names: Vec<String>,
-    function_params: Vec<u32>,
+    fn_sigs: Vec<FuncSig>,
     pub global_values: Vec<i64>,
-    pub global_names: Vec<String>,
+    pub globals_def: Vec<Variable>,
+}
+
+pub struct FuncSig {
+    pub name: String,
+    pub params: Vec<Type_>,
+    pub ret_type: Type_,
+}
+
+#[derive(Debug)]
+pub struct Variable {
+    pub name: String,
+    pub ttype: Type_,
 }
 
 pub struct FuncEnv {
-    pub function_params: Vec<String>,
-    pub local_variables: Vec<String>,
+    pub function_params: Vec<Variable>,
+    pub local_variables: Vec<Variable>,
 }
 
 impl CheckedProgram {
     pub fn check(prog: Program) -> Result<CheckedProgram, String> {
-        let mut function_names = Vec::new();
-        let mut function_params = Vec::new();
         let mut function_envs = Vec::new();
+        let mut fn_sigs: Vec<FuncSig> = Vec::new();
 
         for function in &prog.functions {
-            function_names.push(function.name.clone());
-            function_params.push(function.params.len() as u32);
+            if fn_sigs.iter().any(|x| x.name == function.name) {
+                return Err(format!("Duplicate function name {}", function.name));
+            } 
+            fn_sigs.push(FuncSig {
+                name: function.name.clone(),
+                params: function.params.iter().map(|x| x.ttype.clone()).collect(),
+                ret_type: function.ret_type,
+            });
         }
 
-        let has_main = function_names.contains(&"main".to_string());
+        let has_main = fn_sigs.iter().any(|x| x.name == "main" && x.params.is_empty()); 
         if !has_main {
             return Err("No main function found".to_string());
         }
 
 
         let global_values = Self::resolve_global_values(&prog)?;
-        let global_names: Vec<String> = prog.globals.iter().map(|x| x.name.clone()).collect();
+        let mut globals_def = Vec::new();
+        for global in &prog.globals {
+            globals_def.push(Variable {
+                name: global.name.clone(),
+                ttype: global.ttype.clone(),
+            });
+
+        }
 
         let program_env = ProgEnv {
-            function_names,
-            function_params,
+            fn_sigs,
             global_values,
-            global_names,
+            globals_def,
         };
 
         for function in &prog.functions {
@@ -79,7 +101,7 @@ impl CheckedProgram {
 
     fn eval_global_expression(exp: &Exp, global_values: &Vec<i64>, names: &Vec<String>) -> i64 {
         match exp {
-            Exp::Int(n) => *n,
+            Exp::U64(n) => *n,
             Exp::Var(var) => {
                 let index = names.iter().position(|x| x == var);
                 global_values[index.unwrap()]
@@ -128,7 +150,7 @@ impl CheckedProgram {
 
     fn vars_in_global_expression(exp: &Exp, globals: &Vec<Global>) -> Vec<usize> {
         match exp {
-            Exp::Int(_) => Vec::new(), 
+            Exp::U64(_) => Vec::new(), 
             Exp::Var(var) => {
                 let index = globals.iter().position(|x| x.name == *var);
                 Vec::from([index.unwrap()])
@@ -138,7 +160,7 @@ impl CheckedProgram {
                 vars.append(&mut Self::vars_in_global_expression(e2, globals));
                 vars
             }
-            Exp::Call(call) => {
+            Exp::Call(_call) => {
                 panic!("Function calls not allowed in global expressions");
             }
         }
@@ -150,25 +172,34 @@ impl CheckedProgram {
         let mut local_variables = Vec::new();
 
         for param in &function.params {
-            if function_params.contains(&param.name) {
+            let p_var = Variable {
+                name: param.name.clone(),
+                ttype: param.ttype.clone(),
+            };
+
+            if function_params.iter().any(|x: &Variable| x.name == param.name) {
                 return Err(format!(
                     "Duplicate parameter name {} in function {}",
                     param.name, function.name
                 ));
             }
-            function_params.push(param.name.clone());
+            function_params.push(p_var);
         }
 
         for statement in &function.body {
             match statement {
                 Stmt::Let(let_stmt) => {
-                    if local_variables.contains(&let_stmt.name) {
+                    let var = Variable {
+                        name: let_stmt.name.clone(),
+                        ttype: let_stmt.ttype.clone(),
+                    };
+                    if local_variables.iter().any(|x: &Variable| x.name == let_stmt.name) {
                         return Err(format!(
                             "Duplicate variable name {} in function {}",
                             let_stmt.name, function.name
                         ));
                     }
-                    local_variables.push(let_stmt.name.clone());
+                    local_variables.push(var);
                 }
                 _ => {}
             }
@@ -246,14 +277,9 @@ impl CheckedProgram {
         // 2. all function calls are defined and have the correct number of arguments
         // 3. In the future check the types of the expression
         match exp {
-            Exp::Int(_) => { /* No checks needed, until we add type checking */ }
+            Exp::U64(_) => { /* No checks needed, until we add type checking */ }
             Exp::Var(variable) => {
-                if !f_env.function_params.contains(&variable)
-                    && !f_env.local_variables.contains(&variable)
-                    && !p_env.global_names.contains(&variable)
-                {
-                    return Err(format!("Variable {} not found", variable));
-                }
+                let var = p_env.get_var(variable, f_env).ok_or(format!("Variable {} not found", variable))?;
             }
             Exp::BinOp(e1, _op, e2) => {
                 Self::check_expression(&e1, f_env, p_env)?;
@@ -267,20 +293,13 @@ impl CheckedProgram {
     }
 
     fn check_call(call: &Call, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
-        if !p_env.function_names.contains(&call.name) {
-            return Err(format!("Function {} not found", call.name));
-        }
-        let fun_index = p_env
-            .function_names
-            .iter()
-            .position(|x| x == &call.name)
-            .unwrap();
-        let fun_params = p_env.function_params[fun_index];
-        if fun_params != call.args.len() as u32 {
+        let fn_sig = p_env.get_signature(&call.name).ok_or(format!("Function {} not found", call.name))?;
+
+        if fn_sig.params.len() != call.args.len() {
             return Err(format!(
                 "Function {} takes {} parameters, {} given",
                 call.name,
-                fun_params,
+                fn_sig.params.len(),
                 call.args.len()
             ));
         }
@@ -290,5 +309,42 @@ impl CheckedProgram {
         }
 
         Ok(())
+    }
+}
+
+impl ProgEnv {
+    pub fn get_signature(&self, name: &str) -> Option<&FuncSig> {
+        self.fn_sigs.iter().find(|x| x.name == name)
+    }
+
+    pub fn get_global_def(&self, name: &str) -> Option<&Variable> {
+       self.globals_def.iter().find(|x| x.name == name)
+    }
+
+    pub fn get_var<'a>(&'a self, name: &str, f_env: &'a FuncEnv) -> Option<&'a Variable> {
+        if let Some(var) = f_env.get_var(name) {
+            return Some(var);
+        }
+        self.get_global_def(name)
+    }
+}
+
+
+impl FuncEnv {
+    fn get_var(&self, name: &str) -> Option<&Variable> {
+        if let Some(var) = self.function_params.iter().find(|x| x.name == name) {
+            return Some(var);
+        }
+        if let Some(var) = self.local_variables.iter().find(|x| x.name == name) {
+            return Some(var);
+        }
+        None
+    }
+
+    pub  fn get_local_pos(&self, name: &str) -> Option<usize> {
+        return self.local_variables.iter().position(|x| x.name == name)
+    }
+    pub fn get_param_pos(&self, name: &str) -> Option<usize> {
+        return self.function_params.iter().position(|x| x.name == name)
     }
 }
