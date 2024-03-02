@@ -290,6 +290,7 @@ fn parse_type(ti: &mut TI<'_>) -> Result<Type_, ParseError> {
     let t = ti.next().ok_or(error_eof("type"))?;
     let ttype = match t.token_type {
         TT::Keyword(KW::U64) => Type_::U64,
+        TT::Keyword(KW::I64) => Type_::I64,
         _ => return error("type", t),
     };
     Ok(ttype)

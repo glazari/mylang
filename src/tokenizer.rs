@@ -95,7 +95,9 @@ pub enum Keyword {
     ASM,
 
     // primitive types
-    U64
+    U64,
+    I64,
+
 }
 
 fn keyword_or_ident(ident: &str) -> TokenType {
@@ -112,6 +114,7 @@ fn keyword_or_ident(ident: &str) -> TokenType {
         "global" => TT::Keyword(KW::Global),
         // primitive types
         "u64" => TT::Keyword(KW::U64),
+        "i64" => TT::Keyword(KW::I64),
         _ => TT::Ident(ident.to_string()),
     }
 }
@@ -286,6 +289,7 @@ impl TokenType {
                 Keyword::Let => "let",
                 Keyword::ASM => "asm",
                 Keyword::U64 => "u64",
+                Keyword::I64 => "i64",
             },
             TokenType::Int(i) => {
                 tmp = i.to_string(); 

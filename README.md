@@ -37,6 +37,8 @@ It still has the following important limitations:
 	- decide syntax (probably very similar to rust, but no type inference)
 	- decide structures to represent types
 	- type checking of expressions
+- Add support for booleans (first different sized type)
+- Change conditionals to expect boolean expressions
 
 # ideas
 - write tcp primitives (echo server, http server)

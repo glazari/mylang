@@ -1,17 +1,20 @@
 use crate::ast::*;
 
+#[derive(Debug)]
 pub struct CheckedProgram {
     pub prog: Program,
     pub program_env: ProgEnv,
     pub function_envs: Vec<FuncEnv>,
 }
 
+#[derive(Debug)]
 pub struct ProgEnv {
     fn_sigs: Vec<FuncSig>,
     pub global_values: Vec<i64>,
     pub globals_def: Vec<Variable>,
 }
 
+#[derive(Debug)]
 pub struct FuncSig {
     pub name: String,
     pub params: Vec<Type_>,
@@ -24,9 +27,11 @@ pub struct Variable {
     pub ttype: Type_,
 }
 
+#[derive(Debug)]
 pub struct FuncEnv {
     pub function_params: Vec<Variable>,
     pub local_variables: Vec<Variable>,
+    pub ret_type: Type_,
 }
 
 impl CheckedProgram {
@@ -208,6 +213,7 @@ impl CheckedProgram {
         let function_env = FuncEnv {
             function_params,
             local_variables,
+            ret_type: function.ret_type.clone(),
         };
 
         Self::check_statements(&function.body, &function_env, &prog_env)?;
@@ -235,16 +241,25 @@ impl CheckedProgram {
                 Self::check_statements(&do_while_stmt.body, f_env, p_env)?;
             }
             Stmt::Let(let_stmt) => {
-                Self::check_expression(&let_stmt.value, f_env, p_env)?;
+                let exp_type = Self::check_expression(&let_stmt.value, f_env, p_env)?;
+                if exp_type != let_stmt.ttype {
+                    return Err(format!("Type mismatch in let statement: {:?} and {:?}", exp_type, let_stmt.ttype));
+                }
             }
-            Stmt::Asm(_) => {
-                // No checks, programer is responsible for writing correct assembly
-            }
+            Stmt::Asm(_) => {}, // No checks, programer is responsible for writing correct assembly
             Stmt::Return(return_stmt) => {
-                Self::check_expression(&return_stmt.value, f_env, p_env)?;
+                let exp_type = Self::check_expression(&return_stmt.value, f_env, p_env)?;
+                if exp_type != f_env.ret_type {
+                    return Err(format!("Type mismatch in return statement: {:?} and {:?}", exp_type, f_env.ret_type));
+                }
             }
             Stmt::Assign(assign_stmt) => {
-                Self::check_expression(&assign_stmt.value, f_env, p_env)?;
+                 let exp_type = Self::check_expression(&assign_stmt.value, f_env, p_env)?;
+                 let var = p_env.get_var(&assign_stmt.name, f_env).ok_or(format!("Variable {} not found", assign_stmt.name))?;
+                 if exp_type != var.ttype {
+                     return Err(format!("Type mismatch in assignment: {:?} and {:?}", exp_type, var.ttype));
+                 }
+                 
             }
             Stmt::Call(call) => {
                 Self::check_call(call, f_env, p_env)?;
@@ -271,28 +286,28 @@ impl CheckedProgram {
         Ok(())
     }
 
-    fn check_expression(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+    fn check_expression(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, String> {
         // chect:
         // 1. all variables are defined
         // 2. all function calls are defined and have the correct number of arguments
         // 3. In the future check the types of the expression
-        match exp {
-            Exp::U64(_) => { /* No checks needed, until we add type checking */ }
-            Exp::Var(variable) => {
-                let var = p_env.get_var(variable, f_env).ok_or(format!("Variable {} not found", variable))?;
-            }
+        let ttype = match exp {
+            Exp::U64(_) => { Type_::U64 }
+            Exp::Var(variable) => p_env.get_var(variable, f_env).ok_or(format!("Variable {} not found", variable))?.ttype,
             Exp::BinOp(e1, _op, e2) => {
-                Self::check_expression(&e1, f_env, p_env)?;
-                Self::check_expression(&e2, f_env, p_env)?;
+                let ltype = Self::check_expression(&e1, f_env, p_env)?;
+                let rtype = Self::check_expression(&e2, f_env, p_env)?;
+                if ltype != rtype {
+                    return Err(format!("Type mismatch in binary operation: {:?} and {:?}", ltype, rtype));
+                }
+                ltype
             }
-            Exp::Call(call) => {
-                Self::check_call(call, f_env, p_env)?;
-            }
-        }
-        Ok(())
+            Exp::Call(call) => Self::check_call(call, f_env, p_env)?
+        };
+        Ok(ttype)
     }
 
-    fn check_call(call: &Call, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+    fn check_call(call: &Call, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, String> {
         let fn_sig = p_env.get_signature(&call.name).ok_or(format!("Function {} not found", call.name))?;
 
         if fn_sig.params.len() != call.args.len() {
@@ -304,11 +319,14 @@ impl CheckedProgram {
             ));
         }
 
-        for arg in &call.args {
-            Self::check_expression(arg, f_env, p_env)?;
+        for (i, arg) in call.args.iter().enumerate() {
+            let exp_type = Self::check_expression(arg, f_env, p_env)?;
+            if exp_type != fn_sig.params[i] {
+                return Err(format!("Type mismatch in function call: {:?} and {:?}", exp_type, fn_sig.params[i]));
+            }
         }
 
-        Ok(())
+        Ok(fn_sig.ret_type)
     }
 }
 
@@ -347,4 +365,111 @@ impl FuncEnv {
     pub fn get_param_pos(&self, name: &str) -> Option<usize> {
         return self.function_params.iter().position(|x| x.name == name)
     }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::tokenizer::tokenize;
+    use crate::parser::parse_program;
+
+    fn check_program(input: &str) -> Result<CheckedProgram, String> {
+        let ast =match  parse_program(tokenize(input)) {
+            Ok(ast) => ast,
+            Err(e) => {
+                e.pretty_print(input);
+                panic!("Error in parsing");
+            }
+        };
+
+        
+
+        CheckedProgram::check(ast)
+    }
+
+    #[test]
+    fn test_check_program_errors() {
+        assert_some_error("Duplicate variable name in function",
+            r#"
+        fn main() -> u64 {
+            let a: u64 = 5;
+            let a: u64 = 6;
+        }
+        "#);
+
+        assert_some_error(
+            "Duplicate parameter name in function",
+            r#"fn main(a: u64, a: u64) -> u64 {}"#);
+
+        assert_some_error("No main function found", r#""#);
+
+        assert_some_error(
+            "Duplicate function name",
+            r#"
+        fn main() -> u64 {}
+        fn add() -> u64 {}
+        fn add() -> u64 {}
+        "#);
+
+
+        assert_some_error("Variable not found",
+            r#"
+        fn main() -> u64 {
+            a = 5;
+        }
+        "#);
+    }
+
+    #[test]
+    fn test_type_mismatches() {
+        assert_some_error("Type mismatch in let statement",
+            r#"fn main() -> u64 {
+            let a: u64 = 5;
+            let b: i64 = a + 5;
+            }
+            "#);
+
+        assert_some_error("Type mismatch in return statement",
+            r#"fn main() -> u64 {}
+            fn add(a: u64) -> i64 {
+                return a;
+            }
+            "#);
+
+        assert_some_error("Type mismatch in binary operation",
+            r#"fn main() -> u64 {}
+            fn add(a: u64, b: i64) -> u64 {
+                let c: u64 = a + b;
+            }
+            "#);
+        assert_some_error("Type mismatch in parameter",
+            r#"fn main() -> u64 {
+            let a: u64 = 5;
+            add(a);
+            }
+            fn add(a: i64) -> u64 {}
+            "#);
+
+        assert_some_error("Type mismatch in function return",
+            r#"fn main() -> u64 {
+            let a: u64 = add(5);
+            }
+            fn add(a: u64) -> i64 {}
+            "#);
+    }
+
+
+    fn assert_some_error(msg: &str, input: &str) {
+        let got = check_program(input);
+        match got {
+            Ok(_) => {
+                panic!("Expected error: {}\n\ngot program:\n{:#?}", msg,got.unwrap());
+            }
+            Err(_) => {},
+        }
+    }
+
+
+
 }

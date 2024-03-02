@@ -116,7 +116,8 @@ pub enum Operator {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Type_ {
-    U64
+    U64,
+    I64,
 }
 
 #[derive(Debug, PartialEq)]
