@@ -158,7 +158,7 @@ _start:
 
         self.add_label(&condition_label);
         match &do_while.condition {
-            Exp::BinOp(ref e1, op, ref e2) => {
+            Exp::BinOp(ref e1, op, ref e2, _) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.add_asm("push rax");
                 self.generate_expression(e2, p_env, f_env);
@@ -190,7 +190,7 @@ _start:
 
         self.add_label(&condition_label);
         match &while_stmt.condition {
-            Exp::BinOp(ref e1, op, ref e2) => {
+            Exp::BinOp(ref e1, op, ref e2, _) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.add_asm("push rax");
                 self.generate_expression(e2, p_env, f_env);
@@ -227,7 +227,7 @@ _start:
 
         self.add_label(&if_condition_label);
         match &if_stmt.condition {
-            Exp::BinOp(ref e1, op, ref e2) => {
+            Exp::BinOp(ref e1, op, ref e2, _) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.add_asm("push rax");
                 self.generate_expression(e2, p_env, f_env);
@@ -267,14 +267,14 @@ _start:
 
     fn generate_expression(&mut self, exp: &Exp, p_env: &ProgEnv, f_env: &FuncEnv) {
         match exp {
-            Exp::U64(number) => {
+            Exp::U64(number, _) => {
                 self.add_asm(&format!("mov rax, {}", number));
             }
-            Exp::Var(name) => {
+            Exp::Var(name, _) => {
                 let var_address = Self::get_var_address(name, f_env, p_env);
                 self.add_asm(&format!("mov rax, {}", var_address));
             }
-            Exp::BinOp(e1, op, e2) => {
+            Exp::BinOp(e1, op, e2, _) => {
                 self.generate_expression(e1, p_env, f_env);
                 self.add_asm("push rax");
                 self.generate_expression(e2, p_env, f_env);

@@ -3,6 +3,7 @@ mod checked_program;
 mod code_generation;
 mod parser;
 mod tokenizer;
+mod file_info;
 
 use crate::code_generation::*;
 

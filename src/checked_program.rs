@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::file_info::FI;
 
 #[derive(Debug)]
 pub struct CheckedProgram {
@@ -110,12 +111,12 @@ impl CheckedProgram {
 
     fn eval_global_expression(exp: &Exp, global_values: &Vec<i64>, names: &Vec<String>) -> i64 {
         match exp {
-            Exp::U64(n) => *n,
-            Exp::Var(var) => {
+            Exp::U64(n, _) => *n,
+            Exp::Var(var, _) => {
                 let index = names.iter().position(|x| x == var);
                 global_values[index.unwrap()]
             }
-            Exp::BinOp(e1, op, e2) => {
+            Exp::BinOp(e1, op, e2, _) => {
                 let v1 = Self::eval_global_expression(e1, global_values, names);
                 let v2 = Self::eval_global_expression(e2, global_values, names);
                 match op {
@@ -167,12 +168,12 @@ impl CheckedProgram {
 
     fn vars_in_global_expression(exp: &Exp, globals: &Vec<Global>) -> Vec<usize> {
         match exp {
-            Exp::U64(_) => Vec::new(),
-            Exp::Var(var) => {
+            Exp::U64(_, _) => Vec::new(),
+            Exp::Var(var, _) => {
                 let index = globals.iter().position(|x| x.name == *var);
                 Vec::from([index.unwrap()])
             }
-            Exp::BinOp(e1, _op, e2) => {
+            Exp::BinOp(e1, _op, e2, _) => {
                 let mut vars = Self::vars_in_global_expression(e1, globals);
                 vars.append(&mut Self::vars_in_global_expression(e2, globals));
                 vars
@@ -259,7 +260,7 @@ impl CheckedProgram {
             }
             Stmt::Let(let_stmt) => {
                 let exp_type = Self::check_expression(&let_stmt.value, f_env, p_env)?;
-                if exp_type != let_stmt.ttype {
+                if exp_type.neq(&let_stmt.ttype) {
                     return Err(format!(
                         "Type mismatch in let statement: {:?} and {:?}",
                         exp_type, let_stmt.ttype
@@ -269,7 +270,7 @@ impl CheckedProgram {
             Stmt::Asm(_) => {} // No checks, programer is responsible for writing correct assembly
             Stmt::Return(return_stmt) => {
                 let exp_type = Self::check_expression(&return_stmt.value, f_env, p_env)?;
-                if exp_type != f_env.ret_type {
+                if exp_type.neq(&f_env.ret_type) {
                     return Err(format!(
                         "Type mismatch in return statement: {:?} and {:?}",
                         exp_type, f_env.ret_type
@@ -281,7 +282,7 @@ impl CheckedProgram {
                 let var = p_env
                     .get_var(&assign_stmt.name, f_env)
                     .ok_or(format!("Variable {} not found", assign_stmt.name))?;
-                if exp_type != var.ttype {
+                if exp_type.neq(&var.ttype) {
                     return Err(format!(
                         "Type mismatch in assignment: {:?} and {:?}",
                         exp_type, var.ttype
@@ -296,7 +297,7 @@ impl CheckedProgram {
     }
 
     fn check_comparison_operator(op: &Exp) -> Result<(), String> {
-        if let Exp::BinOp(_, op, _) = op {
+        if let Exp::BinOp(_, op, _, _) = op {
             match op {
                 Op::Eq | Op::Ne | Op::LT | Op::GT => return Ok(()),
                 _ => return Err(format!("Invalid comparison expression: {:?}", op)),
@@ -318,17 +319,17 @@ impl CheckedProgram {
         // 2. all function calls are defined and have the correct number of arguments
         // 3. In the future check the types of the expression
         let ttype = match exp {
-            Exp::U64(_) => Type_::U64,
-            Exp::Var(variable) => {
+            Exp::U64(_, _) => Type_::U64(FI::zero()),
+            Exp::Var(variable, _) => {
                 p_env
                     .get_var(variable, f_env)
                     .ok_or(format!("Variable {} not found", variable))?
                     .ttype
             }
-            Exp::BinOp(e1, _op, e2) => {
+            Exp::BinOp(e1, _op, e2, _) => {
                 let ltype = Self::check_expression(&e1, f_env, p_env)?;
                 let rtype = Self::check_expression(&e2, f_env, p_env)?;
-                if ltype != rtype {
+                if ltype.neq(&rtype) {
                     return Err(format!(
                         "Type mismatch in binary operation: {:?} and {:?}",
                         ltype, rtype
@@ -357,7 +358,7 @@ impl CheckedProgram {
 
         for (i, arg) in call.args.iter().enumerate() {
             let exp_type = Self::check_expression(arg, f_env, p_env)?;
-            if exp_type != fn_sig.params[i] {
+            if exp_type.neq(&fn_sig.params[i]) {
                 return Err(format!(
                     "Type mismatch in function call: {:?} and {:?}",
                     exp_type, fn_sig.params[i]

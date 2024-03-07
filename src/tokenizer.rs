@@ -1,49 +1,11 @@
 use std::iter::Peekable;
 use std::str::Chars;
+use crate::file_info::FileInfo;
 
 // aliases to make code more consise
 pub type TT = TokenType;
-pub type FI = FileInfo;
 pub type KW = Keyword;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct FileInfo {
-    pub line: usize,
-    pub column: usize,
-    pub length: usize,
-}
-
-impl FileInfo {
-    fn new(line: usize, column: usize, length: usize) -> FileInfo {
-        FileInfo {
-            line,
-            column,
-            length,
-        }
-    }
-    pub fn zero() -> FileInfo {
-        FileInfo {
-            line: 0,
-            column: 0,
-            length: 0,
-        }
-    }
-
-    fn col_inc(&mut self) {
-        self.column += 1;
-        self.length += 1;
-    }
-    fn line_inc(&mut self) {
-        self.line += 1;
-        self.length += 1;
-        // reset column
-        self.column = 1;
-    }
-
-    fn len_diff(&self, start: &FileInfo) -> FileInfo {
-        FileInfo::new(start.line, start.column, self.length - start.length)
-    }
-}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
@@ -130,6 +92,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
         line: 1,
         column: 1,
         length: 0,
+        offset: 0,
     };
     let mut chars = input.chars().peekable();
 
@@ -158,7 +121,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
 
     tokens.push(Token::new(
         TokenType::EOF,
-        FileInfo::new(fi.line, fi.column, 0),
+        FileInfo::new(fi.line, fi.column, 0, input.len()),
     ));
 
     tokens
@@ -269,7 +232,7 @@ fn tokenize_whitespace(chars: &mut Peekable<Chars>, fi: &mut FileInfo, tokens: &
             ' ' | '\t' => {
                 tokens.push(Token::new(
                     TokenType::Whitespace,
-                    FileInfo::new(fi.line, fi.column, 1),
+                    FileInfo::new(fi.line, fi.column, 1, fi.offset),
                 ));
                 chars.next();
                 fi.col_inc();
@@ -277,7 +240,7 @@ fn tokenize_whitespace(chars: &mut Peekable<Chars>, fi: &mut FileInfo, tokens: &
             '\n' => {
                 tokens.push(Token::new(
                     TokenType::Newline,
-                    FileInfo::new(fi.line, fi.column, 1),
+                    FileInfo::new(fi.line, fi.column, 1, fi.offset),
                 ));
                 chars.next();
                 fi.line_inc();
@@ -347,34 +310,34 @@ mod test {
     use super::*;
     use pretty_assertions::assert_eq;
 
-    fn token(tt: TokenType, line: usize, column: usize, length: usize) -> Token {
-        Token::new(tt, FileInfo::new(line, column, length))
+    fn token(tt: TokenType, line: usize, column: usize, length: usize, offset: usize) -> Token {
+        Token::new(tt, FileInfo::new(line, column, length, offset))
     }
 
     #[test]
     fn test_tokenize() {
         let input = "fn add(x, y) { x + y }";
         let expected = vec![
-            token(TokenType::Keyword(Keyword::Fn), 1, 1, 2),
-            token(TokenType::Whitespace, 1, 3, 1),
-            token(TokenType::Ident("add".to_string()), 1, 4, 3),
-            token(TokenType::LParen, 1, 7, 1),
-            token(TokenType::Ident("x".to_string()), 1, 8, 1),
-            token(TokenType::Comma, 1, 9, 1),
-            token(TokenType::Whitespace, 1, 10, 1),
-            token(TokenType::Ident("y".to_string()), 1, 11, 1),
-            token(TokenType::RParen, 1, 12, 1),
-            token(TokenType::Whitespace, 1, 13, 1),
-            token(TokenType::LBrace, 1, 14, 1),
-            token(TokenType::Whitespace, 1, 15, 1),
-            token(TokenType::Ident("x".to_string()), 1, 16, 1),
-            token(TokenType::Whitespace, 1, 17, 1),
-            token(TokenType::Plus, 1, 18, 1),
-            token(TokenType::Whitespace, 1, 19, 1),
-            token(TokenType::Ident("y".to_string()), 1, 20, 1),
-            token(TokenType::Whitespace, 1, 21, 1),
-            token(TokenType::RBrace, 1, 22, 1),
-            token(TokenType::EOF, 1, 23, 0),
+            token(TokenType::Keyword(Keyword::Fn), 1, 1, 2, 0),
+            token(TokenType::Whitespace, 1, 3, 1, 2),
+            token(TokenType::Ident("add".to_string()), 1, 4, 3, 3),
+            token(TokenType::LParen, 1, 7, 1, 6),
+            token(TokenType::Ident("x".to_string()), 1, 8, 1, 7),
+            token(TokenType::Comma, 1, 9, 1, 8),
+            token(TokenType::Whitespace, 1, 10, 1, 9),
+            token(TokenType::Ident("y".to_string()), 1, 11, 1, 10),
+            token(TokenType::RParen, 1, 12, 1, 11),
+            token(TokenType::Whitespace, 1, 13, 1, 12),
+            token(TokenType::LBrace, 1, 14, 1, 13),
+            token(TokenType::Whitespace, 1, 15, 1, 14),
+            token(TokenType::Ident("x".to_string()), 1, 16, 1, 15),
+            token(TokenType::Whitespace, 1, 17, 1, 16),
+            token(TokenType::Plus, 1, 18, 1, 17),
+            token(TokenType::Whitespace, 1, 19, 1, 18),
+            token(TokenType::Ident("y".to_string()), 1, 20, 1, 19),
+            token(TokenType::Whitespace, 1, 21, 1, 20),
+            token(TokenType::RBrace, 1, 22, 1, 21),
+            token(TokenType::EOF, 1, 23, 0, 22),
         ];
 
         let tokens = tokenize(input);
@@ -386,12 +349,12 @@ mod test {
     fn test_tokenize_neq() {
         let input = "x != y";
         let expected = vec![
-            token(TokenType::Ident("x".to_string()), 1, 1, 1),
-            token(TokenType::Whitespace, 1, 2, 1),
-            token(TokenType::NotEq, 1, 3, 2),
-            token(TokenType::Whitespace, 1, 5, 1),
-            token(TokenType::Ident("y".to_string()), 1, 6, 1),
-            token(TokenType::EOF, 1, 7, 0),
+            token(TokenType::Ident("x".to_string()), 1, 1, 1, 0),
+            token(TokenType::Whitespace, 1, 2, 1, 1),
+            token(TokenType::NotEq, 1, 3, 2, 2),
+            token(TokenType::Whitespace, 1, 5, 1, 4),
+            token(TokenType::Ident("y".to_string()), 1, 6, 1, 5),
+            token(TokenType::EOF, 1, 7, 0, 6),
         ];
 
         let tokens = tokenize(input);
@@ -403,13 +366,13 @@ mod test {
     fn test_tokenize_comment() {
         let input = "x // comment\n y";
         let expected = vec![
-            token(TokenType::Ident("x".to_string()), 1, 1, 1),
-            token(TokenType::Whitespace, 1, 2, 1),
-            token(TokenType::Comment(" comment".to_string()), 1, 3, 10),
-            token(TokenType::Newline, 1, 13, 1),
-            token(TokenType::Whitespace, 2, 1, 1),
-            token(TokenType::Ident("y".to_string()), 2, 2, 1),
-            token(TokenType::EOF, 2, 3, 0),
+            token(TokenType::Ident("x".to_string()), 1, 1, 1, 0),
+            token(TokenType::Whitespace, 1, 2, 1, 1),
+            token(TokenType::Comment(" comment".to_string()), 1, 3, 10, 2),
+            token(TokenType::Newline, 1, 13, 1, 12),
+            token(TokenType::Whitespace, 2, 1, 1, 13),
+            token(TokenType::Ident("y".to_string()), 2, 2, 1, 14),
+            token(TokenType::EOF, 2, 3, 0, 15),
         ];
 
         let tokens = tokenize(input);

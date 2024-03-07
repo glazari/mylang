@@ -1,5 +1,6 @@
 use crate::ast::*;
-use crate::tokenizer::{Token, FI, KW, TT};
+use crate::tokenizer::{Token, KW, TT};
+use crate::file_info::FI;
 use std::iter::Peekable;
 use std::slice::Iter;
 
@@ -61,7 +62,7 @@ pub fn parse_program(tokens: Vec<Token>) -> Result<Program, ParseError> {
 }
 
 fn parse_global(ti: &mut TI<'_>) -> Result<Global, ParseError> {
-    expect(ti, TT::Keyword(KW::Global), "global")?;
+    let sfi = expect(ti, TT::Keyword(KW::Global), "global")?;
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("variable name"))?;
@@ -76,12 +77,12 @@ fn parse_global(ti: &mut TI<'_>) -> Result<Global, ParseError> {
     expect_sk_ws(ti, TT::Assign, "=")?;
     let value = parse_expression(ti, Precedence::Lowest)?;
 
-    expect_sk_ws(ti, TT::Semicolon, ";")?;
-    Ok(Global { name, value, ttype })
+    let efi = expect_sk_ws(ti, TT::Semicolon, ";")?;
+    Ok(Global { name, value, ttype, fi: sfi.merge(&efi)})
 }
 
 fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
-    expect(ti, TT::Keyword(KW::Fn), "fn")?;
+    let sfi = expect(ti, TT::Keyword(KW::Fn), "fn")?;
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("function name"))?;
@@ -95,19 +96,20 @@ fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
     expect_sk_ws(ti, TT::ReturnArrow, "->")?;
     let ret_type = parse_type(ti)?;
 
-    let body = parse_block(ti)?;
+    let (body, efi) = parse_block(ti)?;
 
     Ok(Function {
         name,
         params,
         body,
         ret_type,
+        fi: sfi.merge(&efi),
     })
 }
 
-fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
+fn parse_block(ti: &mut TI<'_>) -> Result<(Vec<Statement>, FI), ParseError> {
     let mut stmts = Vec::new();
-    expect_sk_ws(ti, TT::LBrace, "{")?;
+    let sfi = expect_sk_ws(ti, TT::LBrace, "{")?;
 
     loop {
         skip_whitespace(ti);
@@ -125,13 +127,13 @@ fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
         }
     }
 
-    expect(ti, TT::RBrace, "}")?;
+    let efi = expect(ti, TT::RBrace, "}")?;
 
-    Ok(stmts)
+    Ok((stmts, sfi.merge(&efi)))
 }
 
 fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
-    expect(ti, TT::Keyword(KW::ASM), "asm")?;
+    let sfi = expect(ti, TT::Keyword(KW::ASM), "asm")?;
     expect_sk_ws(ti, TT::LBrace, "{")?;
     let mut segments = Vec::new();
 
@@ -176,14 +178,14 @@ fn parse_asm(ti: &mut TI<'_>) -> Result<Asm, ParseError> {
         }
     }
 
-    expect_sk_ws(ti, TT::RBrace, "}")?;
-    Ok(Asm { segments })
+    let efi = expect_sk_ws(ti, TT::RBrace, "}")?;
+    Ok(Asm { segments, fi: sfi.merge(&efi) })
 }
 
 fn parse_do_while(ti: &mut TI<'_>) -> Result<DoWhile, ParseError> {
-    expect(ti, TT::Keyword(KW::Do), "do")?;
+    let sfi = expect(ti, TT::Keyword(KW::Do), "do")?;
 
-    let body = parse_block(ti)?;
+    let (body, _) = parse_block(ti)?;
 
     expect_sk_ws(ti, TT::Keyword(KW::While), "while")?;
     expect_sk_ws(ti, TT::LParen, "(")?;
@@ -191,33 +193,33 @@ fn parse_do_while(ti: &mut TI<'_>) -> Result<DoWhile, ParseError> {
     let condition = parse_expression(ti, Precedence::Lowest)?;
 
     expect_sk_ws(ti, TT::RParen, ")")?;
-    expect_sk_ws(ti, TT::Semicolon, ";")?;
+    let efi = expect_sk_ws(ti, TT::Semicolon, ";")?;
 
-    Ok(DoWhile { condition, body })
+    Ok(DoWhile { condition, body, fi: sfi.merge(&efi)})
 }
 
 fn parse_while(ti: &mut TI<'_>) -> Result<While, ParseError> {
-    expect(ti, TT::Keyword(KW::While), "while")?;
+    let sfi = expect(ti, TT::Keyword(KW::While), "while")?;
     expect_sk_ws(ti, TT::LParen, "(")?;
 
     let condition = parse_expression(ti, Precedence::Lowest)?;
 
     expect_sk_ws(ti, TT::RParen, ")")?;
 
-    let body = parse_block(ti)?;
+    let (body, efi) = parse_block(ti)?;
 
-    Ok(While { condition, body })
+    Ok(While { condition, body, fi: sfi.merge(&efi)})
 }
 
 fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
-    expect(ti, TT::Keyword(KW::If), "if")?;
+    let sfi = expect(ti, TT::Keyword(KW::If), "if")?;
     expect_sk_ws(ti, TT::LParen, "(")?;
 
     let condition = parse_expression(ti, Precedence::Lowest)?;
 
     expect_sk_ws(ti, TT::RParen, ")")?;
 
-    let body = parse_block(ti)?;
+    let (body, mut efi) = parse_block(ti)?;
 
     let mut else_body = Vec::new();
 
@@ -225,7 +227,7 @@ fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
     if let Some(t) = ti.peek() {
         if t.token_type == TT::Keyword(KW::Else) {
             ti.next();
-            else_body = parse_block(ti)?;
+            (else_body, efi) = parse_block(ti)?;
         }
     }
 
@@ -233,20 +235,22 @@ fn parse_if(ti: &mut TI<'_>) -> Result<If, ParseError> {
         condition,
         body,
         else_body,
+        fi: sfi.merge(&efi),
     })
 }
 
 fn parse_return(ti: &mut TI<'_>) -> Result<Return, ParseError> {
-    expect(ti, TT::Keyword(KW::Return), "return")?;
+    let sfi = expect(ti, TT::Keyword(KW::Return), "return")?;
 
     let value = parse_expression(ti, Precedence::Lowest)?;
 
-    expect_sk_ws(ti, TT::Semicolon, ";")?;
-    Ok(Return { value })
+    let efi = expect_sk_ws(ti, TT::Semicolon, ";")?;
+    Ok(Return { value, fi: sfi.merge(&efi)})
 }
 
 fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError> {
     let t = ti.next().ok_or(error_eof("identifier"))?;
+    let sfi = t.fi;
     let name = match t.token_type {
         TT::Ident(ref s) => s.clone(),
         _ => return error("identifier", t),
@@ -258,11 +262,12 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
         TT::Assign => {
             ti.next();
             let value = parse_expression(ti, Precedence::Lowest)?;
-            expect_sk_ws(ti, TT::Semicolon, ";")?;
-            Ok(Stmt::Assign(Assign { name, value }))
+            let efi = expect_sk_ws(ti, TT::Semicolon, ";")?;
+            Ok(Stmt::Assign(Assign { name, value, fi: sfi.merge(&efi)}))
         }
         TT::LParen => {
-            let call = parse_call(ti, name)?;
+            let efi = t.fi;
+            let call = parse_call(ti, name, efi)?;
             expect_sk_ws(ti, TT::Semicolon, ";")?;
             Ok(Stmt::Call(call))
         }
@@ -271,7 +276,7 @@ fn parse_ident_start_statement(ti: &mut TI<'_>) -> Result<Statement, ParseError>
 }
 
 fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
-    expect(ti, TT::Keyword(KW::Let), "let")?;
+    let sfi = expect(ti, TT::Keyword(KW::Let), "let")?;
 
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("identifier"))?;
@@ -286,16 +291,16 @@ fn parse_let(ti: &mut TI<'_>) -> Result<Let, ParseError> {
     expect_sk_ws(ti, TT::Assign, "=")?;
     let value = parse_expression(ti, Precedence::Lowest)?;
 
-    expect_sk_ws(ti, TT::Semicolon, ";")?;
-    Ok(Let { name, ttype, value })
+    let efi = expect_sk_ws(ti, TT::Semicolon, ";")?;
+    Ok(Let { name, ttype, value, fi: sfi.merge(&efi)})
 }
 
 fn parse_type(ti: &mut TI<'_>) -> Result<Type_, ParseError> {
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("type"))?;
     let ttype = match t.token_type {
-        TT::Keyword(KW::U64) => Type_::U64,
-        TT::Keyword(KW::I64) => Type_::I64,
+        TT::Keyword(KW::U64) => Type_::U64(t.fi),
+        TT::Keyword(KW::I64) => Type_::I64(t.fi),
         _ => return error("type", t),
     };
     Ok(ttype)
@@ -304,9 +309,10 @@ fn parse_type(ti: &mut TI<'_>) -> Result<Type_, ParseError> {
 fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError> {
     skip_whitespace(ti);
     let t = ti.next().ok_or(error_eof("expression"))?;
+    let sfi = t.fi;
     let mut exp = match t.token_type {
-        TT::Int(n) => Exp::U64(n),
-        TT::Ident(ref s) => parse_ident_start_expression(ti, s.clone())?,
+        TT::Int(n) => Exp::U64(n, sfi),
+        TT::Ident(ref s) => parse_ident_start_expression(ti, s.clone(), sfi)?,
         _ => return error("expression", t),
     };
 
@@ -336,29 +342,30 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
     Ok(exp)
 }
 
-fn parse_ident_start_expression(ti: &mut TI<'_>, name: String) -> Result<Exp, ParseError> {
+fn parse_ident_start_expression(ti: &mut TI<'_>, name: String, sfi: FI) -> Result<Exp, ParseError> {
     skip_whitespace(ti);
     let t = ti.peek().ok_or(error_eof("variable or call"))?;
     match t.token_type {
         TT::LParen => {
-            let call = parse_call(ti, name)?;
+            let call = parse_call(ti, name, sfi)?;
             Ok(Exp::Call(call))
         }
-        _ => Ok(Exp::Var(name)),
+        _ => Ok(Exp::Var(name, sfi)),
     }
 }
 
-fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
+fn parse_call(ti: &mut TI<'_>, name: String, sfi: FI) -> Result<Call, ParseError> {
     let mut args = Vec::new();
     expect(ti, TT::LParen, "(")?;
-
-    loop {
+    
+    let efi = loop {
         skip_whitespace(ti);
         let t = ti.peek().ok_or(error_eof("argument or )"))?;
         let arg = match t.token_type {
             TT::RParen => {
+                let efi = t.fi;
                 ti.next();
-                break;
+                break efi;
             }
             _ => parse_expression(ti, Precedence::Lowest)?,
         };
@@ -366,13 +373,13 @@ fn parse_call(ti: &mut TI<'_>, name: String) -> Result<Call, ParseError> {
 
         let t = ti.next().ok_or(error_eof(")"))?;
         match t.token_type {
-            TT::RParen => break,
+            TT::RParen => break t.fi,
             TT::Comma => continue,
             _ => return error("comma or )", t),
         }
-    }
+    };
 
-    Ok(Call { name, args })
+    Ok(Call { name, args, fi: sfi.merge(&efi)})
 }
 
 fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
@@ -383,7 +390,7 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
         skip_whitespace(ti);
         let t = ti.next().ok_or(error_eof("parameter name or )"))?;
         let par = match t.token_type {
-            TT::Ident(ref s) => parse_param(ti, s.clone())?,
+            TT::Ident(ref s) => parse_param(ti, s.clone(), t.fi)?,
             TT::RParen => break,
             _ => return error("parameter name", t),
         };
@@ -400,23 +407,23 @@ fn parse_params(ti: &mut TI<'_>) -> Result<Vec<Parameter>, ParseError> {
     Ok(params)
 }
 
-fn parse_param(ti: &mut TI<'_>, name: String) -> Result<Parameter, ParseError> {
+fn parse_param(ti: &mut TI<'_>, name: String, sfi: FI) -> Result<Parameter, ParseError> {
     expect_sk_ws(ti, TT::Colon, ":")?;
 
     let ttype = parse_type(ti)?;
 
-    Ok(Parameter { name, ttype })
+    Ok(Parameter { name, ttype, fi: sfi.merge(&ttype.fi())})
 }
 
-fn expect(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<(), ParseError> {
+fn expect(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<FI, ParseError> {
     let t = ti.next().ok_or(error_eof(msg))?;
     if t.token_type != expected {
         return error(msg, t);
     }
-    Ok(())
+    Ok(t.fi)
 }
 
-fn expect_sk_ws(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<(), ParseError> {
+fn expect_sk_ws(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<FI, ParseError> {
     skip_whitespace(ti);
     expect(ti, expected, msg)
 }
@@ -499,10 +506,12 @@ mod test {
                 params: Vec::new(),
                 body: vec![Stmt::Let(Let {
                     name: "x".to_string(),
-                    ttype: Type_::U64,
-                    value: add(int(42), int(1)),
+                    ttype: Type_::U64(FI::new(1, 27, 3, 26)),
+                    value: add(int(42, FI::new(1, 33, 2, 32)), int(1, FI::new(1, 38, 1, 37))),
+                    fi: FI::new(1, 20, 20, 19), 
                 })],
-                ret_type: Type_::U64,
+                ret_type: Type_::U64(FI::new(1, 14, 3, 13)),
+                fi: FI::new(1, 1, 41, 0),
             }],
         };
 
@@ -518,8 +527,11 @@ mod test {
     fn sub(x: Exp, y: Exp) -> Exp {
         binop(x, Op::Sub, y)
     }
-    fn int(n: i64) -> Exp {
-        Exp::U64(n)
+    fn int(n: i64, fi: FI) -> Exp {
+        Exp::U64(n, fi)
+    }
+    fn intz(n: i64) -> Exp {
+        Exp::U64(n, FI::zero())
     }
     fn mul(x: Exp, y: Exp) -> Exp {
         binop(x, Op::Mul, y)
@@ -540,6 +552,22 @@ mod test {
         binop(x, Op::GT, y)
     }
 
+    fn zero_out(exp: &mut Exp) {
+        match exp {
+            Exp::U64(_, ref mut fi) => *fi = FI::zero(),
+            Exp::Var(_, ref mut fi) => *fi = FI::zero(),
+            Exp::BinOp(le, _, re, ref mut fi) => {
+                *fi = FI::zero();
+                zero_out(le);
+                zero_out(re);
+            },
+            Exp::Call(ref mut call) => {
+                call.fi = FI::zero();
+                call.args.iter_mut().for_each(zero_out);
+            },
+        }
+    }
+
     #[test]
     fn test_parse_expression() {
         struct Test {
@@ -550,42 +578,42 @@ mod test {
         let cases = vec![
             Test {
                 input: "42 + 1 + 2 - 3",
-                expected: sub(add(add(int(42), int(1)), int(2)), int(3)),
+                expected: sub(add(add(intz(42), intz(1)), intz(2)), intz(3)),
             },
             Test {
                 input: "42 + 1 * 2 - 3",
-                expected: sub(add(int(42), mul(int(1), int(2))), int(3)),
+                expected: sub(add(intz(42), mul(intz(1), intz(2))), intz(3)),
             },
             Test {
                 input: "42 + 1 * 2 / 3",
-                expected: add(int(42), div(mul(int(1), int(2)), int(3))),
+                expected: add(intz(42), div(mul(intz(1), intz(2)), intz(3))),
             },
             Test {
                 input: "42 + 1 * 2 / 3 == 4 + 5 * 6",
                 expected: eq(
-                    add(int(42), div(mul(int(1), int(2)), int(3))),
-                    add(int(4), mul(int(5), int(6))),
+                    add(intz(42), div(mul(intz(1), intz(2)), intz(3))),
+                    add(intz(4), mul(intz(5), intz(6))),
                 ),
             },
             Test {
                 input: "42 + 1 * 2 / 3 != 4 + 5 * 6",
                 expected: ne(
-                    add(int(42), div(mul(int(1), int(2)), int(3))),
-                    add(int(4), mul(int(5), int(6))),
+                    add(intz(42), div(mul(intz(1), intz(2)), intz(3))),
+                    add(intz(4), mul(intz(5), intz(6))),
                 ),
             },
             Test {
                 input: "42 + 1 * 2 / 3 < 4 + 5 * 6",
                 expected: lt(
-                    add(int(42), div(mul(int(1), int(2)), int(3))),
-                    add(int(4), mul(int(5), int(6))),
+                    add(intz(42), div(mul(intz(1), intz(2)), intz(3))),
+                    add(intz(4), mul(intz(5), intz(6))),
                 ),
             },
             Test {
                 input: "42 + 1 * 2 / 3 > 4 + 5 * 6",
                 expected: gt(
-                    add(int(42), div(mul(int(1), int(2)), int(3))),
-                    add(int(4), mul(int(5), int(6))),
+                    add(intz(42), div(mul(intz(1), intz(2)), intz(3))),
+                    add(intz(4), mul(intz(5), intz(6))),
                 ),
             },
         ];
@@ -600,8 +628,10 @@ mod test {
                 e.pretty_print(t.input);
                 panic!("parse error");
             }
+            let mut e = e.unwrap();
+            zero_out(&mut e);
 
-            assert_eq!(e, Ok(t.expected), "input: {}", t.input);
+            assert_eq!(e, t.expected, "input: {}", t.input);
         }
     }
 
@@ -612,15 +642,18 @@ mod test {
         let expected = vec![
             Parameter {
                 name: "x".to_string(),
-                ttype: Type_::U64,
+                ttype: Type_::U64(FI::zero()),
+                fi: FI::zero(),
             },
             Parameter {
                 name: "y".to_string(),
-                ttype: Type_::U64,
+                ttype: Type_::U64(FI::zero()),
+                fi: FI::zero(),
             },
             Parameter {
                 name: "z".to_string(),
-                ttype: Type_::U64,
+                ttype: Type_::U64(FI::zero()),
+                fi: FI::zero(),
             },
         ];
 
@@ -631,8 +664,13 @@ mod test {
             e.pretty_print(input);
             panic!("parse error");
         }
+        let mut p = p.unwrap();
+        for par in p.iter_mut() {
+            par.fi = FI::zero();
+            par.ttype = par.ttype.zero();
+        }
 
-        assert_eq!(p, Ok(expected));
+        assert_eq!(p, expected);
     }
 
     #[test]
@@ -654,6 +692,7 @@ mod test {
                 ASMSegment::String("syscall".to_string()),
                 ASMSegment::Newline,
             ],
+            fi: FI::new(1, 1, 100, 0),
         };
 
         let tokens = tokenize(input);
