@@ -488,12 +488,12 @@ mod test {
                 params: Vec::new(),
                 body: vec![Stmt::Let(Let {
                     name: "x".to_string(),
-                    ttype: Type_::U64(FI::new(1, 27, 3, 26)),
-                    value: add(int(42, FI::new(1, 33, 2, 32)), int(1, FI::new(1, 38, 1, 37))),
-                    fi: FI::new(1, 20, 20, 19), 
+                    ttype: Type_::U64(FI::new(3, 26)),
+                    value: add(int(42, FI::new(2, 32)), int(1, FI::new(1, 37))),
+                    fi: FI::new(20, 19), 
                 })],
-                ret_type: Type_::U64(FI::new(1, 14, 3, 13)),
-                fi: FI::new(1, 1, 41, 0),
+                ret_type: Type_::U64(FI::new(3, 13)),
+                fi: FI::new(41, 0),
             }],
         };
 
@@ -674,7 +674,7 @@ mod test {
                 ASMSegment::String("syscall".to_string()),
                 ASMSegment::Newline,
             ],
-            fi: FI::new(1, 1, 100, 0),
+            fi: FI::new(100, 0),
         };
 
         let tokens = tokenize(input);
