@@ -1,10 +1,9 @@
 use crate::ast::*;
 use crate::checked_program::*;
+use crate::parser::parse_program;
+use crate::tokenizer;
 use std::fs::File;
 use std::io::prelude::*;
-use crate::tokenizer;
-use crate::parser::parse_program;
-
 
 pub struct CodeGenerator {
     assembly: String,
@@ -45,9 +44,9 @@ _start:
         self.assembly.push_str("\n\nsection .data\n");
         for (i, global) in prog.program_env.globals_def.iter().enumerate() {
             let value = &prog.program_env.global_values[i];
-            self.assembly.push_str(&format!("{} dq {}\n", global.name, value));
+            self.assembly
+                .push_str(&format!("{} dq {}\n", global.name, value));
         }
-        
     }
 
     fn add_asm(&mut self, s: &str) {
@@ -122,7 +121,7 @@ _start:
     fn get_var_address(var_name: &str, f_env: &FuncEnv, p_env: &ProgEnv) -> String {
         let var_num = f_env.get_local_pos(var_name);
         if let Some(var_num) = var_num {
-            let offset =  (var_num as i64 + 1) * 8;
+            let offset = (var_num as i64 + 1) * 8;
             return format!("[rbp - {}]", offset);
         }
         let param_num = f_env.get_param_pos(var_name);
@@ -413,7 +412,7 @@ mod tests {
 
             delete_file(&prog_name);
             delete_file(&format!("{}.asm", prog_name));
-        } 
+        }
     }
 
     fn get_all_files(dir: &str) -> Vec<String> {
@@ -428,5 +427,4 @@ mod tests {
         files.sort();
         files
     }
-
 }

@@ -1,4 +1,3 @@
-
 // Some type aliases that are used to make the code more concise
 pub type Stmt = Statement;
 pub type Exp = Expression;
@@ -6,9 +5,9 @@ pub type Op = Operator;
 
 #[derive(Debug, PartialEq)]
 pub struct Program {
-     pub functions: Vec<Function>,
-     pub globals: Vec<Global>,
- }
+    pub functions: Vec<Function>,
+    pub globals: Vec<Global>,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Function {
@@ -18,7 +17,6 @@ pub struct Function {
     pub ret_type: Type_,
 }
 
-
 #[derive(Debug, PartialEq)]
 pub struct Parameter {
     pub name: String,
@@ -27,14 +25,14 @@ pub struct Parameter {
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
-   If(If),
-   While(While),
-   DoWhile(DoWhile),
-   Let(Let),
-   Asm(Asm),
-   Return(Return),
-   Assign(Assign),
-   Call(Call),
+    If(If),
+    While(While),
+    DoWhile(DoWhile),
+    Let(Let),
+    Asm(Asm),
+    Return(Return),
+    Assign(Assign),
+    Call(Call),
 }
 
 #[derive(Debug, PartialEq)]
@@ -77,9 +75,9 @@ pub struct Asm {
 
 #[derive(Debug, PartialEq)]
 pub enum ASMSegment {
-  String(String),
-  Variable(String),
-  Newline,
+    String(String),
+    Variable(String),
+    Newline,
 }
 
 #[derive(Debug, PartialEq)]

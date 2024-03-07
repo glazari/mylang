@@ -42,7 +42,7 @@ impl CheckedProgram {
         for function in &prog.functions {
             if fn_sigs.iter().any(|x| x.name == function.name) {
                 return Err(format!("Duplicate function name {}", function.name));
-            } 
+            }
             fn_sigs.push(FuncSig {
                 name: function.name.clone(),
                 params: function.params.iter().map(|x| x.ttype.clone()).collect(),
@@ -50,11 +50,12 @@ impl CheckedProgram {
             });
         }
 
-        let has_main = fn_sigs.iter().any(|x| x.name == "main" && x.params.is_empty()); 
+        let has_main = fn_sigs
+            .iter()
+            .any(|x| x.name == "main" && x.params.is_empty());
         if !has_main {
             return Err("No main function found".to_string());
         }
-
 
         let global_values = Self::resolve_global_values(&prog)?;
         let mut globals_def = Vec::new();
@@ -63,7 +64,6 @@ impl CheckedProgram {
                 name: global.name.clone(),
                 ttype: global.ttype.clone(),
             });
-
         }
 
         let program_env = ProgEnv {
@@ -77,11 +77,14 @@ impl CheckedProgram {
             function_envs.push(function_env);
         }
 
-        Ok(CheckedProgram { prog, program_env, function_envs})
+        Ok(CheckedProgram {
+            prog,
+            program_env,
+            function_envs,
+        })
     }
 
     fn resolve_global_values(prog: &Program) -> Result<Vec<i64>, String> {
-
         let dependencies: Vec<Vec<usize>> = Self::find_global_dependencies(prog);
 
         let mut state: Vec<usize> = vec![0; prog.globals.len()];
@@ -98,7 +101,8 @@ impl CheckedProgram {
         let names: Vec<String> = prog.globals.iter().map(|x| x.name.clone()).collect();
         for i in 0..prog.globals.len() {
             let global = &prog.globals[stack[i] as usize];
-            global_values[stack[i]] = Self::eval_global_expression(&global.value, &global_values, &names);
+            global_values[stack[i]] =
+                Self::eval_global_expression(&global.value, &global_values, &names);
         }
 
         Ok(global_values)
@@ -132,7 +136,12 @@ impl CheckedProgram {
         }
     }
 
-    fn global_dfs(n: usize, deps: &Vec<Vec<usize>>, state: &mut Vec<usize>, stack: &mut Vec<usize>) {
+    fn global_dfs(
+        n: usize,
+        deps: &Vec<Vec<usize>>,
+        state: &mut Vec<usize>,
+        stack: &mut Vec<usize>,
+    ) {
         state[n] = 1;
         for dep in &deps[n] {
             if state[*dep] == 0 {
@@ -148,14 +157,17 @@ impl CheckedProgram {
     fn find_global_dependencies(prog: &Program) -> Vec<Vec<usize>> {
         let mut dependencies = Vec::with_capacity(prog.globals.len());
         for global in &prog.globals {
-            dependencies.push(Self::vars_in_global_expression(&global.value, &prog.globals));
+            dependencies.push(Self::vars_in_global_expression(
+                &global.value,
+                &prog.globals,
+            ));
         }
         dependencies
     }
 
     fn vars_in_global_expression(exp: &Exp, globals: &Vec<Global>) -> Vec<usize> {
         match exp {
-            Exp::U64(_) => Vec::new(), 
+            Exp::U64(_) => Vec::new(),
             Exp::Var(var) => {
                 let index = globals.iter().position(|x| x.name == *var);
                 Vec::from([index.unwrap()])
@@ -171,7 +183,6 @@ impl CheckedProgram {
         }
     }
 
-
     fn check_function(function: &Function, prog_env: &ProgEnv) -> Result<FuncEnv, String> {
         let mut function_params = Vec::new();
         let mut local_variables = Vec::new();
@@ -182,7 +193,10 @@ impl CheckedProgram {
                 ttype: param.ttype.clone(),
             };
 
-            if function_params.iter().any(|x: &Variable| x.name == param.name) {
+            if function_params
+                .iter()
+                .any(|x: &Variable| x.name == param.name)
+            {
                 return Err(format!(
                     "Duplicate parameter name {} in function {}",
                     param.name, function.name
@@ -198,7 +212,10 @@ impl CheckedProgram {
                         name: let_stmt.name.clone(),
                         ttype: let_stmt.ttype.clone(),
                     };
-                    if local_variables.iter().any(|x: &Variable| x.name == let_stmt.name) {
+                    if local_variables
+                        .iter()
+                        .any(|x: &Variable| x.name == let_stmt.name)
+                    {
                         return Err(format!(
                             "Duplicate variable name {} in function {}",
                             let_stmt.name, function.name
@@ -243,28 +260,37 @@ impl CheckedProgram {
             Stmt::Let(let_stmt) => {
                 let exp_type = Self::check_expression(&let_stmt.value, f_env, p_env)?;
                 if exp_type != let_stmt.ttype {
-                    return Err(format!("Type mismatch in let statement: {:?} and {:?}", exp_type, let_stmt.ttype));
+                    return Err(format!(
+                        "Type mismatch in let statement: {:?} and {:?}",
+                        exp_type, let_stmt.ttype
+                    ));
                 }
             }
-            Stmt::Asm(_) => {}, // No checks, programer is responsible for writing correct assembly
+            Stmt::Asm(_) => {} // No checks, programer is responsible for writing correct assembly
             Stmt::Return(return_stmt) => {
                 let exp_type = Self::check_expression(&return_stmt.value, f_env, p_env)?;
                 if exp_type != f_env.ret_type {
-                    return Err(format!("Type mismatch in return statement: {:?} and {:?}", exp_type, f_env.ret_type));
+                    return Err(format!(
+                        "Type mismatch in return statement: {:?} and {:?}",
+                        exp_type, f_env.ret_type
+                    ));
                 }
             }
             Stmt::Assign(assign_stmt) => {
-                 let exp_type = Self::check_expression(&assign_stmt.value, f_env, p_env)?;
-                 let var = p_env.get_var(&assign_stmt.name, f_env).ok_or(format!("Variable {} not found", assign_stmt.name))?;
-                 if exp_type != var.ttype {
-                     return Err(format!("Type mismatch in assignment: {:?} and {:?}", exp_type, var.ttype));
-                 }
-                 
+                let exp_type = Self::check_expression(&assign_stmt.value, f_env, p_env)?;
+                let var = p_env
+                    .get_var(&assign_stmt.name, f_env)
+                    .ok_or(format!("Variable {} not found", assign_stmt.name))?;
+                if exp_type != var.ttype {
+                    return Err(format!(
+                        "Type mismatch in assignment: {:?} and {:?}",
+                        exp_type, var.ttype
+                    ));
+                }
             }
             Stmt::Call(call) => {
                 Self::check_call(call, f_env, p_env)?;
             }
-            
         }
         Ok(())
     }
@@ -292,23 +318,33 @@ impl CheckedProgram {
         // 2. all function calls are defined and have the correct number of arguments
         // 3. In the future check the types of the expression
         let ttype = match exp {
-            Exp::U64(_) => { Type_::U64 }
-            Exp::Var(variable) => p_env.get_var(variable, f_env).ok_or(format!("Variable {} not found", variable))?.ttype,
+            Exp::U64(_) => Type_::U64,
+            Exp::Var(variable) => {
+                p_env
+                    .get_var(variable, f_env)
+                    .ok_or(format!("Variable {} not found", variable))?
+                    .ttype
+            }
             Exp::BinOp(e1, _op, e2) => {
                 let ltype = Self::check_expression(&e1, f_env, p_env)?;
                 let rtype = Self::check_expression(&e2, f_env, p_env)?;
                 if ltype != rtype {
-                    return Err(format!("Type mismatch in binary operation: {:?} and {:?}", ltype, rtype));
+                    return Err(format!(
+                        "Type mismatch in binary operation: {:?} and {:?}",
+                        ltype, rtype
+                    ));
                 }
                 ltype
             }
-            Exp::Call(call) => Self::check_call(call, f_env, p_env)?
+            Exp::Call(call) => Self::check_call(call, f_env, p_env)?,
         };
         Ok(ttype)
     }
 
     fn check_call(call: &Call, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, String> {
-        let fn_sig = p_env.get_signature(&call.name).ok_or(format!("Function {} not found", call.name))?;
+        let fn_sig = p_env
+            .get_signature(&call.name)
+            .ok_or(format!("Function {} not found", call.name))?;
 
         if fn_sig.params.len() != call.args.len() {
             return Err(format!(
@@ -322,7 +358,10 @@ impl CheckedProgram {
         for (i, arg) in call.args.iter().enumerate() {
             let exp_type = Self::check_expression(arg, f_env, p_env)?;
             if exp_type != fn_sig.params[i] {
-                return Err(format!("Type mismatch in function call: {:?} and {:?}", exp_type, fn_sig.params[i]));
+                return Err(format!(
+                    "Type mismatch in function call: {:?} and {:?}",
+                    exp_type, fn_sig.params[i]
+                ));
             }
         }
 
@@ -336,7 +375,7 @@ impl ProgEnv {
     }
 
     pub fn get_global_def(&self, name: &str) -> Option<&Variable> {
-       self.globals_def.iter().find(|x| x.name == name)
+        self.globals_def.iter().find(|x| x.name == name)
     }
 
     pub fn get_var<'a>(&'a self, name: &str, f_env: &'a FuncEnv) -> Option<&'a Variable> {
@@ -346,7 +385,6 @@ impl ProgEnv {
         self.get_global_def(name)
     }
 }
-
 
 impl FuncEnv {
     fn get_var(&self, name: &str) -> Option<&Variable> {
@@ -359,23 +397,22 @@ impl FuncEnv {
         None
     }
 
-    pub  fn get_local_pos(&self, name: &str) -> Option<usize> {
-        return self.local_variables.iter().position(|x| x.name == name)
+    pub fn get_local_pos(&self, name: &str) -> Option<usize> {
+        return self.local_variables.iter().position(|x| x.name == name);
     }
     pub fn get_param_pos(&self, name: &str) -> Option<usize> {
-        return self.function_params.iter().position(|x| x.name == name)
+        return self.function_params.iter().position(|x| x.name == name);
     }
 }
-
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tokenizer::tokenize;
     use crate::parser::parse_program;
+    use crate::tokenizer::tokenize;
 
     fn check_program(input: &str) -> Result<CheckedProgram, String> {
-        let ast =match  parse_program(tokenize(input)) {
+        let ast = match parse_program(tokenize(input)) {
             Ok(ast) => ast,
             Err(e) => {
                 e.pretty_print(input);
@@ -383,24 +420,25 @@ mod test {
             }
         };
 
-        
-
         CheckedProgram::check(ast)
     }
 
     #[test]
     fn test_check_program_errors() {
-        assert_some_error("Duplicate variable name in function",
+        assert_some_error(
+            "Duplicate variable name in function",
             r#"
         fn main() -> u64 {
             let a: u64 = 5;
             let a: u64 = 6;
         }
-        "#);
+        "#,
+        );
 
         assert_some_error(
             "Duplicate parameter name in function",
-            r#"fn main(a: u64, a: u64) -> u64 {}"#);
+            r#"fn main(a: u64, a: u64) -> u64 {}"#,
+        );
 
         assert_some_error("No main function found", r#""#);
 
@@ -410,66 +448,78 @@ mod test {
         fn main() -> u64 {}
         fn add() -> u64 {}
         fn add() -> u64 {}
-        "#);
+        "#,
+        );
 
-
-        assert_some_error("Variable not found",
+        assert_some_error(
+            "Variable not found",
             r#"
         fn main() -> u64 {
             a = 5;
         }
-        "#);
+        "#,
+        );
     }
 
     #[test]
     fn test_type_mismatches() {
-        assert_some_error("Type mismatch in let statement",
+        assert_some_error(
+            "Type mismatch in let statement",
             r#"fn main() -> u64 {
             let a: u64 = 5;
             let b: i64 = a + 5;
             }
-            "#);
+            "#,
+        );
 
-        assert_some_error("Type mismatch in return statement",
+        assert_some_error(
+            "Type mismatch in return statement",
             r#"fn main() -> u64 {}
             fn add(a: u64) -> i64 {
                 return a;
             }
-            "#);
+            "#,
+        );
 
-        assert_some_error("Type mismatch in binary operation",
+        assert_some_error(
+            "Type mismatch in binary operation",
             r#"fn main() -> u64 {}
             fn add(a: u64, b: i64) -> u64 {
                 let c: u64 = a + b;
             }
-            "#);
-        assert_some_error("Type mismatch in parameter",
+            "#,
+        );
+        assert_some_error(
+            "Type mismatch in parameter",
             r#"fn main() -> u64 {
             let a: u64 = 5;
             add(a);
             }
             fn add(a: i64) -> u64 {}
-            "#);
+            "#,
+        );
 
-        assert_some_error("Type mismatch in function return",
+        assert_some_error(
+            "Type mismatch in function return",
             r#"fn main() -> u64 {
             let a: u64 = add(5);
             }
             fn add(a: u64) -> i64 {}
-            "#);
+            "#,
+        );
     }
-
 
     fn assert_some_error(msg: &str, input: &str) {
         let got = check_program(input);
         match got {
             Ok(_) => {
-                panic!("Expected error: {}\n\ngot program:\n{:#?}", msg,got.unwrap());
+                panic!(
+                    "Expected error: {}\n\ngot program:\n{:#?}",
+                    msg,
+                    got.unwrap()
+                );
             }
-            Err(_) => {},
+            Err(_) => {}
         }
     }
-
-
-
 }

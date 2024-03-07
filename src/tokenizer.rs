@@ -15,10 +15,18 @@ pub struct FileInfo {
 
 impl FileInfo {
     fn new(line: usize, column: usize, length: usize) -> FileInfo {
-        FileInfo {line, column, length}
+        FileInfo {
+            line,
+            column,
+            length,
+        }
     }
     pub fn zero() -> FileInfo {
-        FileInfo {line: 0, column: 0, length: 0}
+        FileInfo {
+            line: 0,
+            column: 0,
+            length: 0,
+        }
     }
 
     fn col_inc(&mut self) {
@@ -35,7 +43,6 @@ impl FileInfo {
     fn len_diff(&self, start: &FileInfo) -> FileInfo {
         FileInfo::new(start.line, start.column, self.length - start.length)
     }
-
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -44,9 +51,8 @@ pub struct Token {
     pub token_type: TokenType,
 }
 impl Token {
-    
     pub fn new(token_type: TokenType, fi: FileInfo) -> Token {
-        Token {fi, token_type}
+        Token { fi, token_type }
     }
 }
 
@@ -97,7 +103,6 @@ pub enum Keyword {
     // primitive types
     U64,
     I64,
-
 }
 
 fn keyword_or_ident(ident: &str) -> TokenType {
@@ -119,11 +124,14 @@ fn keyword_or_ident(ident: &str) -> TokenType {
     }
 }
 
-pub fn tokenize(input: &str) -> Vec<Token>{
+pub fn tokenize(input: &str) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
-    let mut fi = FileInfo {line: 1, column: 1, length: 0};
+    let mut fi = FileInfo {
+        line: 1,
+        column: 1,
+        length: 0,
+    };
     let mut chars = input.chars().peekable();
-
 
     while let Some(c) = chars.peek() {
         match c {
@@ -132,23 +140,26 @@ pub fn tokenize(input: &str) -> Vec<Token>{
                 let start_fi = fi.clone();
                 let int = tokenize_int(&mut chars, &mut fi);
                 tokens.push(Token::new(int, fi.len_diff(&start_fi)));
-            },
+            }
             'a'..='z' | 'A'..='Z' | '_' => {
                 let start = fi.clone();
                 let ident = tokenize_ident(&mut chars, &mut fi);
                 tokens.push(Token::new(ident, fi.len_diff(&start)));
-            },
-            '(' | ')' | '{' | '}' | '[' | ']' | ',' | ';' | '=' | '+' | '-' | '*' | '/' | '%' | '<' | '>' | '!' | ':'  => {
+            }
+            '(' | ')' | '{' | '}' | '[' | ']' | ',' | ';' | '=' | '+' | '-' | '*' | '/' | '%'
+            | '<' | '>' | '!' | ':' => {
                 let start = fi.clone();
                 let simbol = tokenize_simbol(&mut chars, &mut fi);
                 tokens.push(Token::new(simbol, fi.len_diff(&start)));
-            },
-            _ => panic!("Unknown character: {}", c)
+            }
+            _ => panic!("Unknown character: {}", c),
         }
-        
     }
 
-    tokens.push(Token::new(TokenType::EOF, FileInfo::new(fi.line, fi.column, 0)));
+    tokens.push(Token::new(
+        TokenType::EOF,
+        FileInfo::new(fi.line, fi.column, 0),
+    ));
 
     tokens
 }
@@ -164,7 +175,7 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
         '[' => TokenType::LBracket,
         ']' => TokenType::RBracket,
         ';' => TokenType::Semicolon,
-        ':'=> TokenType::Colon,
+        ':' => TokenType::Colon,
         ',' => TokenType::Comma,
         '=' => {
             if let Some('=') = chars.peek() {
@@ -174,7 +185,7 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
             } else {
                 TokenType::Assign
             }
-        },
+        }
         '!' => {
             if let Some('=') = chars.peek() {
                 chars.next();
@@ -183,7 +194,7 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
             } else {
                 TokenType::Illegal
             }
-        },
+        }
         '+' => TokenType::Plus,
         '-' => {
             if let Some('>') = chars.peek() {
@@ -193,7 +204,7 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
             } else {
                 TokenType::Minus
             }
-        },
+        }
         '*' => TokenType::Asterisk,
         '/' => {
             if let Some('/') = chars.peek() {
@@ -214,12 +225,12 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
             } else {
                 TokenType::Slash
             }
-        }, 
+        }
         '%' => TokenType::Percent,
         '<' => TokenType::Lt,
         '>' => TokenType::Gt,
         _ => TokenType::Illegal,
-    } 
+    }
 }
 
 fn tokenize_int(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
@@ -230,7 +241,7 @@ fn tokenize_int(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
                 int.push(*c);
                 chars.next();
                 fi.col_inc();
-            },
+            }
             _ => break,
         }
     }
@@ -245,7 +256,7 @@ fn tokenize_ident(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
                 ident.push(*c);
                 chars.next();
                 fi.col_inc();
-            },
+            }
             _ => break,
         }
     }
@@ -256,20 +267,25 @@ fn tokenize_whitespace(chars: &mut Peekable<Chars>, fi: &mut FileInfo, tokens: &
     while let Some(c) = chars.peek() {
         match c {
             ' ' | '\t' => {
-                tokens.push(Token::new(TokenType::Whitespace, FileInfo::new(fi.line, fi.column, 1)));
+                tokens.push(Token::new(
+                    TokenType::Whitespace,
+                    FileInfo::new(fi.line, fi.column, 1),
+                ));
                 chars.next();
                 fi.col_inc();
-            },
+            }
             '\n' => {
-                tokens.push(Token::new(TokenType::Newline, FileInfo::new(fi.line, fi.column, 1)));
+                tokens.push(Token::new(
+                    TokenType::Newline,
+                    FileInfo::new(fi.line, fi.column, 1),
+                ));
                 chars.next();
                 fi.line_inc();
-            },
+            }
             _ => break,
         }
     }
 }
-
 
 impl TokenType {
     pub fn string(&self) -> String {
@@ -292,9 +308,9 @@ impl TokenType {
                 Keyword::I64 => "i64",
             },
             TokenType::Int(i) => {
-                tmp = i.to_string(); 
+                tmp = i.to_string();
                 &tmp
-            },
+            }
             TokenType::LParen => "(",
             TokenType::RParen => ")",
             TokenType::LBrace => "{",
@@ -320,12 +336,11 @@ impl TokenType {
             TokenType::Comment(s) => {
                 tmp = format!("//{}", s);
                 &tmp
-            },
+            }
         };
         out.to_string()
     }
 }
-
 
 #[cfg(test)]
 mod test {

@@ -52,7 +52,7 @@ pub fn parse_program(tokens: Vec<Token>) -> Result<Program, ParseError> {
             TT::Keyword(KW::Global) => {
                 let g = parse_global(&mut tokens)?;
                 p.globals.push(g);
-            },
+            }
             _ => return error("function or global", t),
         }
     }
@@ -97,7 +97,12 @@ fn parse_function(ti: &mut TI<'_>) -> Result<Function, ParseError> {
 
     let body = parse_block(ti)?;
 
-    Ok(Function { name, params, body, ret_type })
+    Ok(Function {
+        name,
+        params,
+        body,
+        ret_type,
+    })
 }
 
 fn parse_block(ti: &mut TI<'_>) -> Result<Vec<Statement>, ParseError> {
@@ -400,8 +405,7 @@ fn parse_param(ti: &mut TI<'_>, name: String) -> Result<Parameter, ParseError> {
 
     let ttype = parse_type(ti)?;
 
-    Ok(Parameter{ name, ttype })
-
+    Ok(Parameter { name, ttype })
 }
 
 fn expect(ti: &mut TI<'_>, expected: TT, msg: &str) -> Result<(), ParseError> {

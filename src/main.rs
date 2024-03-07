@@ -1,8 +1,8 @@
 mod ast;
 mod checked_program;
 mod code_generation;
-mod tokenizer;
 mod parser;
+mod tokenizer;
 
 use crate::code_generation::*;
 
@@ -13,6 +13,6 @@ fn main() {
     if args.len() > 1 {
         file_name = &args[1];
     }
-    
+
     compile_file(file_name).expect("compile error");
 }
