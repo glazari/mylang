@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 use std::str::Chars;
-use crate::file_info::{FileInfo, FI};
+use crate::file_info::{FileInfo, FI, underline_error};
 
 // aliases to make code more consise
 pub type TT = TokenType;
@@ -110,7 +110,11 @@ pub fn tokenize(input: &str) -> Vec<Token> {
                 let simbol = tokenize_simbol(&mut chars, &mut fi);
                 tokens.push(Token::new(simbol, fi.len_diff(&start)));
             }
-            _ => panic!("Unknown character: {}", c),
+            _ => {
+                println!("{}", underline_error(input, &fi));
+                println!("fi: {:?}", fi);
+                panic!("Unknown character: {}", c);
+            }
         }
     }
 

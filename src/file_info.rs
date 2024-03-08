@@ -39,12 +39,13 @@ pub fn underline(input: &str, fi: &FileInfo, color: &str) -> String {
         let mut l_num = 1;
 
         let mut prev_non_ws_line_offset = 0;
-        let mut prev_non_ws_line_num = 0;
+        let mut prev_non_ws_line_num = 1;
 
         
         let mut ti = input.chars().peekable();
         while offset < fi.offset {
-            match ti.next().unwrap() {
+            let c = ti.next().unwrap();
+            match c {
                 '\n' => {
                     l_num += 1;
                     col = 1;
@@ -59,11 +60,10 @@ pub fn underline(input: &str, fi: &FileInfo, color: &str) -> String {
             offset += 1;
         }
 
-
-        println!("Error at line {}", l_num);
-        let mut out_str = format!("{:3}: ", l_num);
         let mut ti = input.chars().skip(prev_non_ws_line_offset).peekable();
         let mut line_number = prev_non_ws_line_num;
+        let mut out_str = format!("{:3}: ", line_number);
+        let mut offset = prev_non_ws_line_offset;
         // create 
         while offset < fi.offset {
             let c = ti.next().unwrap();
@@ -86,6 +86,9 @@ pub fn underline(input: &str, fi: &FileInfo, color: &str) -> String {
                 _ => out_str.push(c),
             }
         }
+        if !out_str.ends_with('\n') {
+            out_str.push_str("\n");
+        }
         out_str.push_str(color); // color escape sequence
         out_str.push_str(&format!("     {:->1$}", "^", col));
         if color.len() > 0 {
@@ -93,4 +96,40 @@ pub fn underline(input: &str, fi: &FileInfo, color: &str) -> String {
         }
         out_str
 
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_underline() {
+        let input = r#"0123456789"#;
+        assert_eq!(underline(input, &FI::new(1, 0), ""), r#"
+  1: 0123456789
+     ^"#[1..]);
+        assert_eq!(underline(input, &FI::new(1, 1), ""), r#"
+  1: 0123456789
+     -^"#[1..]);
+        assert_eq!(underline(input, &FI::new(1, 8), ""), r#"
+  1: 0123456789
+     --------^"#[1..]);
+    }
+
+    #[test]
+    fn test_underline_with_previous_non_white_on_other_line() {
+        let input = r#"01234
+
+789"#;
+        assert_eq!(underline(input, &FI::new(1, 7), ""), r#"
+  1: 01234
+  2: 
+  3: 789
+     ^"#[1..]);
+        assert_eq!(underline(input, &FI::new(1, 8), ""), r#"
+  3: 789
+     -^"#[1..]);
+    }
+    
 }
