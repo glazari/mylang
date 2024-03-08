@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::file_info::FI;
+use crate::file_info::{FI, underline_error};
 
 #[derive(Debug)]
 pub struct CheckedProgram {
@@ -35,14 +35,30 @@ pub struct FuncEnv {
     pub ret_type: Type_,
 }
 
+#[derive(Debug)]
+pub struct CheckError {
+    pub msg: String,
+    pub fi: FI,
+}
+
+impl CheckError {
+    pub fn new(msg: &str, fi: FI) -> CheckError {
+        CheckError { msg: msg.to_string(), fi }
+    }
+    pub fn pretty_print(&self, input: &str) {
+        println!("{}", self.msg);
+        println!("{}", underline_error(input, &self.fi));
+    }
+}
+
 impl CheckedProgram {
-    pub fn check(prog: Program) -> Result<CheckedProgram, String> {
+    pub fn check(prog: Program) -> Result<CheckedProgram, CheckError> {
         let mut function_envs = Vec::new();
         let mut fn_sigs: Vec<FuncSig> = Vec::new();
 
         for function in &prog.functions {
             if fn_sigs.iter().any(|x| x.name == function.name) {
-                return Err(format!("Duplicate function name {}", function.name));
+                return Err(CheckError::new(&format!("Duplicate function name {}", function.name), function.fi));
             }
             fn_sigs.push(FuncSig {
                 name: function.name.clone(),
@@ -55,7 +71,7 @@ impl CheckedProgram {
             .iter()
             .any(|x| x.name == "main" && x.params.is_empty());
         if !has_main {
-            return Err("No main function found".to_string());
+            return Err(CheckError::new("No main function found", FI::zero()));
         }
 
         let global_values = Self::resolve_global_values(&prog)?;
@@ -85,7 +101,7 @@ impl CheckedProgram {
         })
     }
 
-    fn resolve_global_values(prog: &Program) -> Result<Vec<i64>, String> {
+    fn resolve_global_values(prog: &Program) -> Result<Vec<i64>, CheckError> {
         let dependencies: Vec<Vec<usize>> = Self::find_global_dependencies(prog);
 
         let mut state: Vec<usize> = vec![0; prog.globals.len()];
@@ -184,7 +200,7 @@ impl CheckedProgram {
         }
     }
 
-    fn check_function(function: &Function, prog_env: &ProgEnv) -> Result<FuncEnv, String> {
+    fn check_function(function: &Function, prog_env: &ProgEnv) -> Result<FuncEnv, CheckError> {
         let mut function_params = Vec::new();
         let mut local_variables = Vec::new();
 
@@ -198,10 +214,9 @@ impl CheckedProgram {
                 .iter()
                 .any(|x: &Variable| x.name == param.name)
             {
-                return Err(format!(
-                    "Duplicate parameter name {} in function {}",
-                    param.name, function.name
-                ));
+                return Err(
+                    CheckError::new(&format!("Duplicate parameter name {} in function {}", param.name, function.name), param.fi)
+                );
             }
             function_params.push(p_var);
         }
@@ -217,10 +232,9 @@ impl CheckedProgram {
                         .iter()
                         .any(|x: &Variable| x.name == let_stmt.name)
                     {
-                        return Err(format!(
-                            "Duplicate variable name {} in function {}",
-                            let_stmt.name, function.name
-                        ));
+                        return Err(
+                            CheckError::new(&format!("Duplicate variable name {} in function {}", let_stmt.name, function.name), let_stmt.fi)
+                        );
                     }
                     local_variables.push(var);
                 }
@@ -239,7 +253,7 @@ impl CheckedProgram {
         Ok(function_env)
     }
 
-    fn check_statement(stmt: &Stmt, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+    fn check_statement(stmt: &Stmt, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), CheckError> {
         match stmt {
             Stmt::If(if_stmt) => {
                 // Top level of the condition must be a comparison
@@ -261,32 +275,31 @@ impl CheckedProgram {
             Stmt::Let(let_stmt) => {
                 let exp_type = Self::check_expression(&let_stmt.value, f_env, p_env)?;
                 if exp_type.neq(&let_stmt.ttype) {
-                    return Err(format!(
-                        "Type mismatch in let statement: {:?} and {:?}",
-                        exp_type, let_stmt.ttype
-                    ));
+                    return Err(
+                        CheckError::new(&format!("Type mismatch in let statement: {:?} and {:?}", exp_type, let_stmt.ttype), let_stmt.fi)
+                    );
                 }
             }
             Stmt::Asm(_) => {} // No checks, programer is responsible for writing correct assembly
             Stmt::Return(return_stmt) => {
                 let exp_type = Self::check_expression(&return_stmt.value, f_env, p_env)?;
                 if exp_type.neq(&f_env.ret_type) {
-                    return Err(format!(
-                        "Type mismatch in return statement: {:?} and {:?}",
-                        exp_type, f_env.ret_type
-                    ));
+                    return Err(
+                        CheckError::new(&format!("Type mismatch in return statement: {:?} and {:?}", exp_type, f_env.ret_type), return_stmt.fi)
+                    );
                 }
             }
             Stmt::Assign(assign_stmt) => {
                 let exp_type = Self::check_expression(&assign_stmt.value, f_env, p_env)?;
                 let var = p_env
                     .get_var(&assign_stmt.name, f_env)
-                    .ok_or(format!("Variable {} not found", assign_stmt.name))?;
+                    .ok_or(
+                        CheckError::new(&format!("Variable {} not found", assign_stmt.name), assign_stmt.fi)
+                    )?;
                 if exp_type.neq(&var.ttype) {
-                    return Err(format!(
-                        "Type mismatch in assignment: {:?} and {:?}",
-                        exp_type, var.ttype
-                    ));
+                    return Err(
+                        CheckError::new(&format!("Type mismatch in assignment: {:?} and {:?}", exp_type, var.ttype), assign_stmt.fi)
+                    );
                 }
             }
             Stmt::Call(call) => {
@@ -296,24 +309,28 @@ impl CheckedProgram {
         Ok(())
     }
 
-    fn check_comparison_operator(op: &Exp) -> Result<(), String> {
-        if let Exp::BinOp(_, op, _, _) = op {
+    fn check_comparison_operator(exp: &Exp) -> Result<(), CheckError> {
+        if let Exp::BinOp(_, op, _, _) = exp {
             match op {
                 Op::Eq | Op::Ne | Op::LT | Op::GT => return Ok(()),
-                _ => return Err(format!("Invalid comparison expression: {:?}", op)),
+                _ => return Err(
+                    CheckError::new(&format!("Invalid comparison expression: {:?}", op), exp.fi())
+                ),
             }
         }
-        Err(format!("Invalid comparison expression: {:?}", op))
+        Err(
+            CheckError::new(&format!("Invalid comparison expression: {:?}", exp), exp.fi())
+        )
     }
 
-    fn check_statements(stmts: &Vec<Stmt>, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), String> {
+    fn check_statements(stmts: &Vec<Stmt>, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<(), CheckError> {
         for statement in stmts {
             Self::check_statement(statement, f_env, p_env)?;
         }
         Ok(())
     }
 
-    fn check_expression(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, String> {
+    fn check_expression(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, CheckError> {
         // chect:
         // 1. all variables are defined
         // 2. all function calls are defined and have the correct number of arguments
@@ -323,17 +340,18 @@ impl CheckedProgram {
             Exp::Var(variable, _) => {
                 p_env
                     .get_var(variable, f_env)
-                    .ok_or(format!("Variable {} not found", variable))?
+                    .ok_or(
+                        CheckError::new(&format!("Variable {} not found", variable), exp.fi())
+                    )?
                     .ttype
             }
             Exp::BinOp(e1, _op, e2, _) => {
                 let ltype = Self::check_expression(&e1, f_env, p_env)?;
                 let rtype = Self::check_expression(&e2, f_env, p_env)?;
                 if ltype.neq(&rtype) {
-                    return Err(format!(
-                        "Type mismatch in binary operation: {:?} and {:?}",
-                        ltype, rtype
-                    ));
+                    return Err(
+                        CheckError::new(&format!("Type mismatch in binary operation: {:?} and {:?}", ltype, rtype), exp.fi())
+                    );
                 }
                 ltype
             }
@@ -342,27 +360,25 @@ impl CheckedProgram {
         Ok(ttype)
     }
 
-    fn check_call(call: &Call, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, String> {
+    fn check_call(call: &Call, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, CheckError> {
         let fn_sig = p_env
             .get_signature(&call.name)
-            .ok_or(format!("Function {} not found", call.name))?;
+            .ok_or(
+                CheckError::new(&format!("Function {} not found", call.name), call.fi)
+            )?;
 
         if fn_sig.params.len() != call.args.len() {
-            return Err(format!(
-                "Function {} takes {} parameters, {} given",
-                call.name,
-                fn_sig.params.len(),
-                call.args.len()
-            ));
+            return Err(
+                CheckError::new(&format!("Function {} takes {} parameters, {} given", call.name, fn_sig.params.len(), call.args.len()), call.fi)
+                );
         }
 
         for (i, arg) in call.args.iter().enumerate() {
             let exp_type = Self::check_expression(arg, f_env, p_env)?;
             if exp_type.neq(&fn_sig.params[i]) {
-                return Err(format!(
-                    "Type mismatch in function call: {:?} and {:?}",
-                    exp_type, fn_sig.params[i]
-                ));
+                return Err(
+                    CheckError::new(&format!("Type mismatch in function call: {:?} and {:?}", exp_type, fn_sig.params[i]), arg.fi())
+                );
             }
         }
 
@@ -412,7 +428,7 @@ mod test {
     use crate::parser::parse_program;
     use crate::tokenizer::tokenize;
 
-    fn check_program(input: &str) -> Result<CheckedProgram, String> {
+    fn check_program(input: &str) -> Result<CheckedProgram, CheckError> {
         let ast = match parse_program(tokenize(input)) {
             Ok(ast) => ast,
             Err(e) => {

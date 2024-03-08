@@ -318,8 +318,7 @@ _start:
     }
 }
 
-pub fn compile(prog: Program, out_file: &str) -> Result<(), String> {
-    let checked_prog = CheckedProgram::check(prog)?;
+pub fn compile(checked_prog: CheckedProgram, out_file: &str) -> Result<(), String> {
     let assembly = CodeGenerator::generate_code(checked_prog);
 
     let assembly_file = format!("{}.asm", out_file);
@@ -382,8 +381,15 @@ pub fn compile_file(filename: &str) -> Result<(), String> {
     }
     let prog = prog.unwrap();
 
+    let checked_prog = CheckedProgram::check(prog);
+    if let Err(e) = checked_prog {
+        e.pretty_print(&input);
+        return Err(format!("type error: {:?}", e));
+    }
+    let checked_prog = checked_prog.unwrap();
+
     let out_filename = filename.replace(".mylang", "");
-    compile(prog, &out_filename)
+    compile(checked_prog, &out_filename)
 }
 
 #[cfg(test)]
