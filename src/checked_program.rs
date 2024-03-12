@@ -11,7 +11,7 @@ pub struct CheckedProgram {
 #[derive(Debug)]
 pub struct ProgEnv {
     fn_sigs: Vec<FuncSig>,
-    pub global_values: Vec<i64>,
+    pub global_values: Vec<u64>,
     pub globals_def: Vec<Variable>,
 }
 
@@ -101,7 +101,7 @@ impl CheckedProgram {
         })
     }
 
-    fn resolve_global_values(prog: &Program) -> Result<Vec<i64>, CheckError> {
+    fn resolve_global_values(prog: &Program) -> Result<Vec<u64>, CheckError> {
         let dependencies: Vec<Vec<usize>> = Self::find_global_dependencies(prog);
 
         let mut state: Vec<usize> = vec![0; prog.globals.len()];
@@ -125,9 +125,10 @@ impl CheckedProgram {
         Ok(global_values)
     }
 
-    fn eval_global_expression(exp: &Exp, global_values: &Vec<i64>, names: &Vec<String>) -> i64 {
+    fn eval_global_expression(exp: &Exp, global_values: &Vec<u64>, names: &Vec<String>) -> u64 {
         match exp {
             Exp::U64(n, _) => *n,
+            Exp::I64(_n, _) => panic!("Signed integers not allowed in global expressions"),
             Exp::Var(var, _) => {
                 let index = names.iter().position(|x| x == var);
                 global_values[index.unwrap()]
@@ -185,6 +186,7 @@ impl CheckedProgram {
     fn vars_in_global_expression(exp: &Exp, globals: &Vec<Global>) -> Vec<usize> {
         match exp {
             Exp::U64(_, _) => Vec::new(),
+            Exp::I64(_, _) => Vec::new(),
             Exp::Var(var, _) => {
                 let index = globals.iter().position(|x| x.name == *var);
                 Vec::from([index.unwrap()])
@@ -330,13 +332,18 @@ impl CheckedProgram {
         Ok(())
     }
 
-    fn check_expression(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, CheckError> {
+    pub fn get_type(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Type_ {
+        Self::check_expression(exp, f_env, p_env).unwrap()
+    }
+
+    pub fn check_expression(exp: &Exp, f_env: &FuncEnv, p_env: &ProgEnv) -> Result<Type_, CheckError> {
         // chect:
         // 1. all variables are defined
         // 2. all function calls are defined and have the correct number of arguments
         // 3. In the future check the types of the expression
         let ttype = match exp {
-            Exp::U64(_, _) => Type_::U64(FI::zero()),
+            Exp::U64(_, fi) => Type_::U64(*fi),
+            Exp::I64(_, fi) => Type_::I64(*fi),
             Exp::Var(variable, _) => {
                 p_env
                     .get_var(variable, f_env)

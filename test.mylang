@@ -1,13 +1,16 @@
 global a: u64 = 0;
 
 fn main() -> u64 {
-  init(); 
+  init();
 
+  print_nln(1+2+8);
   let a : u64 =  5;
   let b : u64 =  10;
   print_nln(b - a);
-
-
+  let c : i64 = 10i64;
+  c = 0i64 - c;
+  c = c / 2i64;
+//  print_nln(c);
 
   print_nln(123);
   print_nln(001);
@@ -17,6 +20,10 @@ fn main() -> u64 {
   print_nln(10000);
   print_hexln(10000);
 }
+
+//fn add(a: i64) -> u64 {
+//  return a;
+//}
 
 // --------------------------------------------------
 // prelude-like area, helper functions

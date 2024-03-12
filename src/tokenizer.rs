@@ -24,7 +24,8 @@ pub enum TokenType {
     Illegal,
     Ident(String),
     Keyword(Keyword),
-    Int(i64),
+    U64(u64),
+    I64(i64),
     LParen,
     RParen,
     LBrace,
@@ -193,18 +194,37 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
 }
 
 fn tokenize_int(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
-    let mut int = String::new();
+    let mut num = String::new();
     while let Some(c) = chars.peek() {
         match c {
             '0'..='9' => {
-                int.push(*c);
+                num.push(*c);
                 chars.next();
                 fi.inc();
             }
             _ => break,
         }
     }
-    TT::Int(int.parse::<i64>().unwrap())
+    if let Some(c) = chars.peek() {
+        match c {
+            'i' => {
+                expect(chars, "i64", fi);
+                return TT::I64(num.parse::<i64>().unwrap());
+            }
+            'u' => {
+                expect(chars, "u64", fi);
+                return TT::U64(num.parse::<u64>().unwrap());
+            }
+            'f' => {
+                expect(chars, "f64", fi);
+            }
+            _ => {}
+        }
+    }
+    
+
+
+    TT::U64(num.parse::<u64>().unwrap())
 }
 
 fn tokenize_ident(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
@@ -235,6 +255,23 @@ fn tokenize_whitespace(chars: &mut Peekable<Chars>, fi: &mut FileInfo, tokens: &
     }
 }
 
+fn expect(chars: &mut Peekable<Chars>, expected: &str, fi: &mut FileInfo) {
+    let mut got = String::new();
+    for c in expected.chars() {
+        match chars.next() {
+            Some(x) => {
+                got.push(x);
+                fi.inc();
+                if x != c {
+                    println!("{}", underline_error(&format!("Expected: '{}', got: '{}'", expected, got), &fi));
+                    panic!("Expected: '{}', got: '{}'", expected, got);
+                }
+            }
+            None => panic!("Expected: '{}', got '{}' + EOF", expected, got),
+        }
+    }
+}
+
 impl TokenType {
     pub fn string(&self) -> String {
         let tmp: String;
@@ -255,7 +292,11 @@ impl TokenType {
                 KW::U64 => "u64",
                 KW::I64 => "i64",
             },
-            TT::Int(i) => {
+            TT::U64(i) => {
+                tmp = i.to_string();
+                &tmp
+            }
+            TT::I64(i) => {
                 tmp = i.to_string();
                 &tmp
             }

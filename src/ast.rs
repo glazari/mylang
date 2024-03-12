@@ -105,7 +105,8 @@ pub struct Assign {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
-    U64(i64, FI),
+    U64(u64, FI),
+    I64(i64, FI),
     Var(String, FI),
     BinOp(Box<Expression>, Operator, Box<Expression>, FI),
     Call(Call),
@@ -141,6 +142,7 @@ impl Expression {
     pub fn fi(&self) -> FI {
         match self {
             Expression::U64(_, fi) => *fi,
+            Expression::I64(_, fi) => *fi,
             Expression::Var(_, fi) => *fi,
             Expression::BinOp(_, _, _, fi) => *fi,
             Expression::Call(call) => call.fi,

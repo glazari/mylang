@@ -33,6 +33,8 @@ It still has the following important limitations:
 # todo
 - Add support for simple types (signed-i64, u64, f64), all 64 bit to not deal with size.
 	- decide syntax (probably very similar to rust, but no type inference)
+        - 123u64, 123i64, 123f64
+        - but the default will be i64
 	- decide structures to represent types
 	- type checking of expressions
 - Add support for booleans (first different sized type)

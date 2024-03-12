@@ -311,7 +311,8 @@ fn parse_expression(ti: &mut TI<'_>, prec: Precedence) -> Result<Exp, ParseError
     let t = ti.next().ok_or(error_eof("expression"))?;
     let sfi = t.fi;
     let mut exp = match t.token_type {
-        TT::Int(n) => Exp::U64(n, sfi),
+        TT::U64(n) => Exp::U64(n, sfi),
+        TT::I64(n) => Exp::I64(n, sfi),
         TT::Ident(ref s) => parse_ident_start_expression(ti, s.clone(), sfi)?,
         _ => return error("expression", t),
     };
@@ -509,10 +510,10 @@ mod test {
     fn sub(x: Exp, y: Exp) -> Exp {
         binop(x, Op::Sub, y)
     }
-    fn int(n: i64, fi: FI) -> Exp {
+    fn int(n: u64, fi: FI) -> Exp {
         Exp::U64(n, fi)
     }
-    fn intz(n: i64) -> Exp {
+    fn intz(n: u64) -> Exp {
         Exp::U64(n, FI::zero())
     }
     fn mul(x: Exp, y: Exp) -> Exp {
@@ -537,6 +538,7 @@ mod test {
     fn zero_out(exp: &mut Exp) {
         match exp {
             Exp::U64(_, ref mut fi) => *fi = FI::zero(),
+            Exp::I64(_, ref mut fi) => *fi = FI::zero(),
             Exp::Var(_, ref mut fi) => *fi = FI::zero(),
             Exp::BinOp(le, _, re, ref mut fi) => {
                 *fi = FI::zero();

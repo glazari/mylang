@@ -270,6 +270,9 @@ _start:
             Exp::U64(number, _) => {
                 self.add_asm(&format!("mov rax, {}", number));
             }
+            Exp::I64(number, _) => {
+                self.add_asm(&format!("mov rax, {}", number));
+            }
             Exp::Var(name, _) => {
                 let var_address = Self::get_var_address(name, f_env, p_env);
                 self.add_asm(&format!("mov rax, {}", var_address));
@@ -280,25 +283,51 @@ _start:
                 self.generate_expression(e2, p_env, f_env);
                 self.add_asm("mov rbx, rax");
                 self.add_asm("pop rax");
-                match op {
-                    Operator::Add => self.add_asm("add rax, rbx"),
-                    Operator::Sub => self.add_asm("sub rax, rbx"),
-                    Operator::Mul => self.add_asm("mul rbx"), // mul => RDX:RAX := RAX * r/m64
-                    Operator::Div => {
-                        self.add_asm("cdq"); // sign extend rax to rdx:rax
-                        self.add_asm("div rbx"); // rax := rdx:rax / rbx
-                    }
-                    Operator::Mod => {
-                        self.add_asm("cdq"); // sign extend rax to rdx:rax
-                        self.add_asm("div rbx"); // rdx := rdx:rax % rbx
-                        self.add_asm("mov rax, rdx");
-                    }
-                    _ => panic!("unimplemented"),
-                };
+                let t = CheckedProgram::get_type(exp, f_env, p_env); 
+                match t {
+                    Type_::U64(_) => self.generate_binop_u64(op), 
+                    Type_::I64(_) => self.generate_binop_i64(op),
+                }
             }
             Exp::Call(call) => {
                 self.generate_call(call, p_env, f_env);
             }
+        }
+    }
+
+    fn generate_binop_u64(&mut self, op: &Operator) {
+        match op {
+            Operator::Add => self.add_asm("add rax, rbx"),
+            Operator::Sub => self.add_asm("sub rax, rbx"),
+            Operator::Mul => self.add_asm("mul rbx"), // mul => RDX:RAX := RAX * r/m64
+            Operator::Div => {
+                self.add_asm("xor rdx, rdx"); // clear rdx
+                self.add_asm("div rbx"); // rax := rdx:rax / rbx
+            }
+            Operator::Mod => {
+                self.add_asm("xor rdx, rdx"); // clear rdx
+                self.add_asm("div rbx"); // rdx := rdx:rax % rbx
+                self.add_asm("mov rax, rdx");
+            }
+            _ => panic!("unimplemented, {:?}", op),
+        }
+    }
+
+    fn generate_binop_i64(&mut self, op: &Operator) {
+        match op {
+            Operator::Add => self.add_asm("add rax, rbx"),
+            Operator::Sub => self.add_asm("sub rax, rbx"),
+            Operator::Mul => self.add_asm("imul rbx"), // imul => RDX:RAX := RAX * r/m64
+            Operator::Div => {
+                self.add_asm("cqo"); // sign extend rax to rdx:rax
+                self.add_asm("idiv rbx"); // rax := rdx:rax / rbx
+            }
+            Operator::Mod => {
+                self.add_asm("cqo"); // sign extend rax to rdx:rax
+                self.add_asm("idiv rbx"); // rdx := rdx:rax % rbx
+                self.add_asm("mov rax, rdx");
+            }
+            _ => panic!("unimplemented, {:?}", op),
         }
     }
 

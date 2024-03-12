@@ -13,12 +13,28 @@ main:
 	; prologue
 	push rbp
 	mov rbp, rsp
-	sub rsp, 16
+	sub rsp, 24
 	; body
 	sub rsp, 8
 	call init
 	mov rax, [rsp]
 	add rsp, 8
+	mov rax, 1
+	push rax
+	mov rax, 2
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	push rax
+	mov rax, 8
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	push rax
+	sub rsp, 8
+	call print_nln
+	mov rax, [rsp]
+	add rsp, 16
 	mov rax, 5
 	mov [rbp - 8], rax
 	mov rax, 10
@@ -34,6 +50,23 @@ main:
 	call print_nln
 	mov rax, [rsp]
 	add rsp, 16
+	mov rax, 10
+	mov [rbp - 24], rax
+	mov rax, 0
+	push rax
+	mov rax, [rbp - 24]
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	mov [rbp - 24], rax
+	mov rax, [rbp - 24]
+	push rax
+	mov rax, 2
+	mov rbx, rax
+	pop rax
+	cqo
+	idiv rbx
+	mov [rbp - 24], rax
 	mov rax, 123
 	push rax
 	sub rsp, 8
@@ -77,7 +110,7 @@ main:
 	mov rax, [rsp]
 	add rsp, 16
 	; epilogue
-	add rsp, 16
+	add rsp, 24
 	pop rbp
 	ret
 init_brk:
@@ -292,7 +325,7 @@ do_while_body_1:
 	mov rax, [rbp + 24]
 	mov rbx, rax
 	pop rax
-	cdq
+	xor rdx, rdx
 	div rbx
 	mov rax, rdx
 	mov [rbp - 8], rax
@@ -301,7 +334,7 @@ do_while_body_1:
 	mov rax, [rbp + 24]
 	mov rbx, rax
 	pop rax
-	cdq
+	xor rdx, rdx
 	div rbx
 	mov [rbp + 40], rax
 if_condition_2:
