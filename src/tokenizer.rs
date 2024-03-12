@@ -97,7 +97,7 @@ pub fn tokenize(input: &str) -> Vec<Token> {
             ' ' | '\t' | '\n' => tokenize_whitespace(&mut chars, &mut fi, &mut tokens),
             '0'..='9' => {
                 let start_fi = fi.clone();
-                let int = tokenize_int(&mut chars, &mut fi);
+                let int = tokenize_num(&mut chars, &mut fi);
                 tokens.push(Token::new(int, fi.len_diff(&start_fi)));
             }
             'a'..='z' | 'A'..='Z' | '_' => {
@@ -193,7 +193,7 @@ fn tokenize_simbol(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType 
     }
 }
 
-fn tokenize_int(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
+fn tokenize_num(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
     let mut num = String::new();
     while let Some(c) = chars.peek() {
         match c {
@@ -224,7 +224,7 @@ fn tokenize_int(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {
     
 
 
-    TT::U64(num.parse::<u64>().unwrap())
+    TT::I64(num.parse::<i64>().unwrap())
 }
 
 fn tokenize_ident(chars: &mut Peekable<Chars>, fi: &mut FileInfo) -> TokenType {

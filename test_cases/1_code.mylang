@@ -22,7 +22,7 @@ fn main() -> u64 {
   }
 
 
-  let count: u64 = 0;
+  let count: i64 = 0;
   while (count < 11) {
     print_numberln(count);
     count = count + 1;
@@ -30,15 +30,15 @@ fn main() -> u64 {
 }
 
 
-fn print_numberln(num: u64) -> u64 {
-  let num_size: u64 = 0;
-  let cp_num: u64 = num;
+fn print_numberln(num: i64) -> u64 {
+  let num_size: i64 = 0;
+  let cp_num: i64 = num;
   while (cp_num > 0) {
     cp_num = cp_num / 10;
     num_size = num_size + 1;
   }
-  let digit: u64 = 0;
-  let base: u64 = 0;
+  let digit: i64 = 0;
+  let base: i64 = 0;
 
   if (num_size == 0) {
     num_size = 1;
@@ -54,8 +54,8 @@ fn print_numberln(num: u64) -> u64 {
   print_chr(10);
 }
 
-fn pow(base: u64, exp: u64) -> u64 {
-  let prod: u64 = 1;
+fn pow(base: i64, exp: i64) -> i64 {
+  let prod: i64 = 1;
   while (exp > 0) {
     prod = prod * base;
     exp = exp - 1;
@@ -63,7 +63,7 @@ fn pow(base: u64, exp: u64) -> u64 {
   return prod;
 }
 
-fn print_chr(a: u64) -> u64 {
+fn print_chr(a: i64) -> i64 {
   asm {
     mov rsi, rbp
     add rsi, 24 ; point to address of a

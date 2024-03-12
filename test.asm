@@ -37,11 +37,11 @@ main:
 	add rsp, 16
 	mov rax, 5
 	mov [rbp - 8], rax
-	mov rax, 10
+	mov rax, 100
 	mov [rbp - 16], rax
-	mov rax, [rbp - 16]
-	push rax
 	mov rax, [rbp - 8]
+	push rax
+	mov rax, [rbp - 16]
 	mov rbx, rax
 	pop rax
 	sub rax, rbx
@@ -313,20 +313,42 @@ num_to_string:
 	; prologue
 	push rbp
 	mov rbp, rsp
-	sub rsp, 32
+	sub rsp, 40
 	; body
 	mov rax, 0
 	mov [rbp - 8], rax
 	mov rax, [num_to_string_bff]
 	mov [rbp - 16], rax
-do_while_body_1:
+	mov rax, 0
+	mov [rbp - 24], rax
+if_condition_1:
+	mov rax, [rbp + 40]
+	push rax
+	mov rax, 0
+	pop rbx
+	cmp rbx, rax
+	jge else_1
+if_body_1:
+	mov rax, 1
+	mov [rbp - 24], rax
+	mov rax, 0
+	push rax
+	mov rax, [rbp + 40]
+	mov rbx, rax
+	pop rax
+	sub rax, rbx
+	mov [rbp + 40], rax
+	jmp end_1
+else_1:
+end_1:
+do_while_body_2:
 	mov rax, [rbp + 40]
 	push rax
 	mov rax, [rbp + 24]
 	mov rbx, rax
 	pop rax
-	xor rdx, rdx
-	div rbx
+	cqo
+	idiv rbx
 	mov rax, rdx
 	mov [rbp - 8], rax
 	mov rax, [rbp + 40]
@@ -334,17 +356,17 @@ do_while_body_1:
 	mov rax, [rbp + 24]
 	mov rbx, rax
 	pop rax
-	xor rdx, rdx
-	div rbx
+	cqo
+	idiv rbx
 	mov [rbp + 40], rax
-if_condition_2:
+if_condition_3:
 	mov rax, [rbp - 8]
 	push rax
 	mov rax, 11
 	pop rbx
 	cmp rbx, rax
-	jge else_2
-if_body_2:
+	jge else_3
+if_body_3:
 	mov rax, [rbp - 8]
 	push rax
 	mov rax, 48
@@ -352,8 +374,8 @@ if_body_2:
 	pop rax
 	add rax, rbx
 	mov [rbp - 8], rax
-	jmp end_2
-else_2:
+	jmp end_3
+else_3:
 	mov rax, [rbp - 8]
 	push rax
 	mov rax, 10
@@ -366,7 +388,7 @@ else_2:
 	pop rax
 	add rax, rbx
 	mov [rbp - 8], rax
-end_2:
+end_3:
 	mov rdx, [rbp - 8]
 	mov rax, [rbp - 16]
 	mov byte [rax], dl 
@@ -377,21 +399,41 @@ end_2:
 	pop rax
 	add rax, rbx
 	mov [rbp - 16], rax
-do_while_condition_1:
+do_while_condition_2:
 	mov rax, [rbp + 40]
 	push rax
 	mov rax, 0
 	pop rbx
 	cmp rbx, rax
-	jg do_while_body_1
-do_while_end_1:
+	jg do_while_body_2
+do_while_end_2:
+if_condition_4:
+	mov rax, [rbp - 24]
+	push rax
+	mov rax, 1
+	pop rbx
+	cmp rbx, rax
+	jne else_4
+if_body_4:
+	mov rax, [rbp - 16]
+	mov byte [rax], 45; -
+	mov rax, [rbp - 16]
+	push rax
+	mov rax, 1
+	mov rbx, rax
+	pop rax
+	add rax, rbx
+	mov [rbp - 16], rax
+	jmp end_4
+else_4:
+end_4:
 	mov rax, [rbp - 16]
 	push rax
 	mov rax, [num_to_string_bff]
 	mov rbx, rax
 	pop rax
 	sub rax, rbx
-	mov [rbp - 24], rax
+	mov [rbp - 32], rax
 	mov rax, [rbp - 16]
 	push rax
 	mov rax, 1
@@ -400,26 +442,26 @@ do_while_end_1:
 	sub rax, rbx
 	mov [rbp - 16], rax
 	mov rax, 0
-	mov [rbp - 32], rax
-while_condition_3:
-	mov rax, [rbp - 32]
+	mov [rbp - 40], rax
+while_condition_5:
+	mov rax, [rbp - 40]
 	push rax
-	mov rax, [rbp - 24]
+	mov rax, [rbp - 32]
 	pop rbx
 	cmp rbx, rax
-	jge while_end_3
-while_body_3:
+	jge while_end_5
+while_body_5:
 	mov rax, [rbp - 16]
 	mov byte dl, [rax]
 	mov rax, [rbp + 32] ; address points to a location that has the address
 	mov byte [rax], dl
-	mov rax, [rbp - 32]
+	mov rax, [rbp - 40]
 	push rax
 	mov rax, 1
 	mov rbx, rax
 	pop rax
 	add rax, rbx
-	mov [rbp - 32], rax
+	mov [rbp - 40], rax
 	mov rax, [rbp + 32]
 	push rax
 	mov rax, 1
@@ -434,24 +476,24 @@ while_body_3:
 	pop rax
 	sub rax, rbx
 	mov [rbp - 16], rax
-	jmp while_condition_3
-while_end_3:
+	jmp while_condition_5
+while_end_5:
 	mov rax, [rbp + 32]
 	mov byte [rax], 10 ; add new line
-	mov rax, [rbp - 24]
+	mov rax, [rbp - 32]
 	push rax
 	mov rax, 1
 	mov rbx, rax
 	pop rax
 	add rax, rbx
-	mov [rbp - 24], rax
-	mov rax, [rbp - 24]
+	mov [rbp - 32], rax
+	mov rax, [rbp - 32]
 	mov [rbp + 16], rax
-	add rsp, 32
+	add rsp, 40
 	pop rbp
 	ret
 	; epilogue
-	add rsp, 32
+	add rsp, 40
 	pop rbp
 	ret
 ptr_get:

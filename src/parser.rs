@@ -481,7 +481,7 @@ mod test {
 
     #[test]
     fn test_parse_program() {
-        let tokens = tokenize("fn main() -> u64 { let x: u64 = 42 + 1; }");
+        let tokens = tokenize("fn main() -> u64 { let x: i64 = 42 + 1; }");
         let expected = Program {
             globals: Vec::new(),
             functions: vec![Function {
@@ -489,7 +489,7 @@ mod test {
                 params: Vec::new(),
                 body: vec![Stmt::Let(Let {
                     name: "x".to_string(),
-                    ttype: Type_::U64(FI::new(3, 26)),
+                    ttype: Type_::I64(FI::new(3, 26)),
                     value: add(int(42, FI::new(2, 32)), int(1, FI::new(1, 37))),
                     fi: FI::new(20, 19), 
                 })],
@@ -510,11 +510,11 @@ mod test {
     fn sub(x: Exp, y: Exp) -> Exp {
         binop(x, Op::Sub, y)
     }
-    fn int(n: u64, fi: FI) -> Exp {
-        Exp::U64(n, fi)
+    fn int(n: i64, fi: FI) -> Exp {
+        Exp::I64(n, fi)
     }
-    fn intz(n: u64) -> Exp {
-        Exp::U64(n, FI::zero())
+    fn intz(n: i64) -> Exp {
+        Exp::I64(n, FI::zero())
     }
     fn mul(x: Exp, y: Exp) -> Exp {
         binop(x, Op::Mul, y)

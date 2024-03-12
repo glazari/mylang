@@ -11,7 +11,7 @@ pub struct CheckedProgram {
 #[derive(Debug)]
 pub struct ProgEnv {
     fn_sigs: Vec<FuncSig>,
-    pub global_values: Vec<u64>,
+    pub global_values: Vec<i64>,
     pub globals_def: Vec<Variable>,
 }
 
@@ -101,7 +101,7 @@ impl CheckedProgram {
         })
     }
 
-    fn resolve_global_values(prog: &Program) -> Result<Vec<u64>, CheckError> {
+    fn resolve_global_values(prog: &Program) -> Result<Vec<i64>, CheckError> {
         let dependencies: Vec<Vec<usize>> = Self::find_global_dependencies(prog);
 
         let mut state: Vec<usize> = vec![0; prog.globals.len()];
@@ -125,10 +125,10 @@ impl CheckedProgram {
         Ok(global_values)
     }
 
-    fn eval_global_expression(exp: &Exp, global_values: &Vec<u64>, names: &Vec<String>) -> u64 {
+    fn eval_global_expression(exp: &Exp, global_values: &Vec<i64>, names: &Vec<String>) -> i64 {
         match exp {
-            Exp::U64(n, _) => *n,
-            Exp::I64(_n, _) => panic!("Signed integers not allowed in global expressions"),
+            Exp::U64(_n, _) => panic!("Unsigned integers not allowed in global expressions"), 
+            Exp::I64(n, _) => *n,
             Exp::Var(var, _) => {
                 let index = names.iter().position(|x| x == var);
                 global_values[index.unwrap()]
